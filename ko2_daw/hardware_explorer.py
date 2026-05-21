@@ -25,14 +25,42 @@ def apply_hardware_explorer_patch(gui_module: Any) -> None:
         toolbar = tk.Frame(parent, bg="#d8d4c8")
         toolbar.grid(row=0, column=0, sticky="ew", pady=(0, 6))
         hardware_buttons = (
-            ("READ IDENTITY", self._probe_identity, "Ask the EP-133 for its universal MIDI identity. Read-only."),
-            ("FILE INIT", self._probe_file_init, "Initialize the Teenage Engineering read-only file protocol and learn chunk size."),
-            ("LIST ROOT", self._probe_root_list, "List the root folders exposed by the device, usually sounds and projects."),
+            (
+                "READ IDENTITY",
+                self._probe_identity,
+                "Ask the EP-133 for its universal MIDI identity. Read-only.",
+            ),
+            (
+                "FILE INIT",
+                self._probe_file_init,
+                "Initialize the Teenage Engineering read-only file protocol and learn chunk size.",
+            ),
+            (
+                "LIST ROOT",
+                self._probe_root_list,
+                "List the root folders exposed by the device, usually sounds and projects.",
+            ),
             ("LIST SELECTED", self._probe_selected_node, "List the selected hardware folder node."),
-            ("PLAY FILE", self._play_selected_device_file, "Start playback preview for the selected device file."),
-            ("STOP FILE", self._stop_selected_device_file, "Stop playback preview for the selected device file."),
-            ("SCAN DEVICE", self._scan_complete_device_tree, "Scan the complete read-only hardware file tree."),
-            ("EXPORT CACHE", self._export_hardware_cache, "Save the visible explorer tree to daw_projects/hardware_file_cache.json."),
+            (
+                "PLAY FILE",
+                self._play_selected_device_file,
+                "Start playback preview for the selected device file.",
+            ),
+            (
+                "STOP FILE",
+                self._stop_selected_device_file,
+                "Stop playback preview for the selected device file.",
+            ),
+            (
+                "SCAN DEVICE",
+                self._scan_complete_device_tree,
+                "Scan the complete read-only hardware file tree.",
+            ),
+            (
+                "EXPORT CACHE",
+                self._export_hardware_cache,
+                "Save the visible explorer tree to daw_projects/hardware_file_cache.json.",
+            ),
             ("CLEAR", self._clear_hardware_cache, "Clear the displayed hardware file tree."),
         )
         for index, (text, command, tip) in enumerate(hardware_buttons):
@@ -60,7 +88,10 @@ def apply_hardware_explorer_patch(gui_module: Any) -> None:
         self.hardware_tree.grid(row=1, column=0, sticky="nsew")
         self._tip(
             self.hardware_tree,
-            "Explorer view of the hardware file tree. Select folders for LIST SELECTED, or files for PLAY FILE / STOP FILE.",
+            (
+                "Explorer view of the hardware file tree. Select folders for LIST SELECTED, "
+                "or files for PLAY FILE / STOP FILE."
+            ),
         )
         self._ensure_hardware_root()
 
@@ -76,7 +107,10 @@ def apply_hardware_explorer_patch(gui_module: Any) -> None:
         try:
             node_id = int(values[0])
         except (TypeError, ValueError):
-            messagebox.showinfo("KO II Hardware Files", "The selected item does not have a numeric node id.")
+            messagebox.showinfo(
+                "KO II Hardware Files",
+                "The selected item does not have a numeric node id.",
+            )
             return None
         return {
             "kind": str(values[1]) if len(values) > 1 else "",
@@ -173,7 +207,8 @@ def apply_hardware_explorer_patch(gui_module: Any) -> None:
             collect(item)
         path = self.project_root / "hardware_file_cache.json"
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"rows": rows}, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        payload = json.dumps({"rows": rows}, indent=2, sort_keys=True) + "\n"
+        path.write_text(payload, encoding="utf-8")
         self._set_action(f"exported {path.name}")
         messagebox.showinfo("KO II Hardware Files", f"Exported hardware cache:\n{path}")
 
