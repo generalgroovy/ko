@@ -1,0 +1,19 @@
+{
+  "error": "No module named 'rtmidi'",
+  "hints": [
+    "No visible port name looks like KO II; check the cable, device USB mode, drivers, or MIDI interface routing.",
+    "Live mode will fail until a working mido backend such as python-rtmidi is installed."
+  ],
+  "input_ports": [
+    "QUAD-CAPTURE"
+  ],
+  "live_midi_available": false,
+  "mido_installed": true,
+  "output_ports": [
+    "Microsoft GS Wavetable Synth",
+    "QUAD-CAPTURE"
+  ],
+  "port_source": "winmm",
+  "rtmidi_installed": false,
+  "winmm_error": null
+}

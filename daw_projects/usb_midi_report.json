@@ -1,0 +1,389 @@
+{
+  "error": null,
+  "hints": [
+    "EP-133 is connected over USB, but Windows exposes it as USB Audio rather than a MIDI input/output endpoint.",
+    "No visible port name looks like KO II; check the cable, device USB mode, drivers, or MIDI interface routing."
+  ],
+  "input_ports": [
+    "QUAD-CAPTURE"
+  ],
+  "ko2_midi_ports": [],
+  "ko2_midi_ready": false,
+  "ko2_usb_connected": true,
+  "ko2_usb_devices": [
+    {
+      "device_description": "@usb.inf,%usb\\composite.devicedesc%;USB Composite Device",
+      "friendly_name": "",
+      "hardware_id": "VID_2367&PID_0020",
+      "instance": "E3PUI15N",
+      "manufacturer": "@usb.inf,%generic.mfg%;(Standard USB Host Controller)",
+      "service": "usbccgp"
+    },
+    {
+      "device_description": "@wdma_usb.inf,%usb\\class_01.devicedesc%;USB Audio Device",
+      "friendly_name": "EP-133",
+      "hardware_id": "VID_2367&PID_0020&MI_00",
+      "instance": "7&35d176b5&1&0000",
+      "manufacturer": "@wdma_usb.inf,%mfgname%;Microsoft",
+      "service": "usbaudio"
+    }
+  ],
+  "live_backend": "winmm",
+  "live_midi_available": true,
+  "mido_error": "No module named 'rtmidi'",
+  "mido_installed": true,
+  "native_winmm_available": true,
+  "output_ports": [
+    "Microsoft GS Wavetable Synth",
+    "QUAD-CAPTURE"
+  ],
+  "port_source": "winmm",
+  "rtmidi_installed": false,
+  "usb_devices": [
+    {
+      "device_description": "@xusb22.inf,%xusb22.devicename.wired%;Xbox 360 Controller for Windows",
+      "friendly_name": "",
+      "hardware_id": "VID_045E&PID_028E",
+      "instance": "0AD93BE",
+      "manufacturer": "@xusb22.inf,%msft%;Microsoft",
+      "service": "xusb22"
+    },
+    {
+      "device_description": "@input.inf,%hid.devicedesc%;USB Input Device",
+      "friendly_name": "",
+      "hardware_id": "VID_045E&PID_028E&IG_00",
+      "instance": "8&52a7df7&0&00",
+      "manufacturer": "@input.inf,%stdmfg%;(Standard system devices)",
+      "service": "HidUsb"
+    },
+    {
+      "device_description": "@input.inf,%hid.devicedesc%;USB Input Device",
+      "friendly_name": "",
+      "hardware_id": "VID_045E&PID_028E&IG_01",
+      "instance": "8&52a7df7&0&01",
+      "manufacturer": "@input.inf,%stdmfg%;(Standard system devices)",
+      "service": "HidUsb"
+    },
+    {
+      "device_description": "@input.inf,%hid.devicedesc%;USB Input Device",
+      "friendly_name": "",
+      "hardware_id": "VID_046A&PID_C094",
+      "instance": "6&3b683a3c&0&3",
+      "manufacturer": "@input.inf,%stdmfg%;(Standard system devices)",
+      "service": "HidUsb"
+    },
+    {
+      "device_description": "@input.inf,%hid.devicedesc%;USB Input Device",
+      "friendly_name": "",
+      "hardware_id": "VID_046A&PID_C094",
+      "instance": "7&35646aa3&0&2",
+      "manufacturer": "@input.inf,%stdmfg%;(Standard system devices)",
+      "service": "HidUsb"
+    },
+    {
+      "device_description": "@input.inf,%hid.devicedesc%;USB Input Device",
+      "friendly_name": "",
+      "hardware_id": "VID_046A&PID_C094",
+      "instance": "7&35646aa3&0&3",
+      "manufacturer": "@input.inf,%stdmfg%;(Standard system devices)",
+      "service": "HidUsb"
+    },
+    {
+      "device_description": "@oem42.inf,%usb\\vid_04e8&pid_6860.devicedesc%;SAMSUNG Mobile USB Composite Device ",
+      "friendly_name": "",
+      "hardware_id": "VID_04E8&PID_6860",
+      "instance": "R3CW70N6J7K",
+      "manufacturer": "@oem42.inf,%ssud%;SAMSUNG Electronics Co., Ltd. ",
+      "service": "dg_ssudbus"
+    },
+    {
+      "device_description": "@oem50.inf,%ssud.devicedesc%;SAMSUNG Mobile USB Modem",
+      "friendly_name": "SAMSUNG Mobile USB Modem",
+      "hardware_id": "VID_04E8&PID_6860&Modem",
+      "instance": "7&24023d1c&0&0001",
+      "manufacturer": "@oem50.inf,%ssud%;SAMSUNG Electronics Co., Ltd. ",
+      "service": "Modem"
+    },
+    {
+      "device_description": "SM-F946B",
+      "friendly_name": "Z Fold5 von sam",
+      "hardware_id": "VID_04E8&PID_6860&MS_COMP_MTP&SAMSUNG_Android",
+      "instance": "7&24023d1c&0&0000",
+      "manufacturer": "samsung",
+      "service": "WUDFWpdMtp"
+    },
+    {
+      "device_description": "@oem18.inf,%devicename%;GameCube Controller Adapter",
+      "friendly_name": "WUP-028",
+      "hardware_id": "VID_057E&PID_0337",
+      "instance": "15/07/2014",
+      "manufacturer": "@oem18.inf,%vendorname%;Nintendo Co., Ltd",
+      "service": "WinUSB"
+    },
+    {
+      "device_description": "@oem40.inf,%driverdevicedesc%;QUAD-CAPTURE",
+      "friendly_name": "",
+      "hardware_id": "VID_0582&PID_012F",
+      "instance": "0000AD28B6A2D88ABA38A72B2B0622E0",
+      "manufacturer": "@oem40.inf,%mfgname%;Roland",
+      "service": "RDID1117"
+    },
+    {
+      "device_description": "@winusb.inf,%usb\\ms_comp_billboard.devicedesc%;Billboard Device",
+      "friendly_name": "Billboard",
+      "hardware_id": "VID_05AC&PID_026E",
+      "instance": "FTPF514VP2TV",
+      "manufacturer": "@winusb.inf,%generic.mfg%;WinUsb Device",
+      "service": "WINUSB"
+    },
+    {
+      "device_description": "@oem17.inf,%iphone.appleusb.devicedesc%;Apple Mobile Device USB Composite Device",
+      "friendly_name": "@oem17.inf,%iPhone.AppleUSB.DeviceDesc%;Apple Mobile Device USB Composite Device",
+      "hardware_id": "VID_05AC&PID_12AB",
+      "instance": "00008027001309081A6A402E",
+      "manufacturer": "@oem17.inf,%aapl%;Apple, Inc.",
+      "service": "usbccgp"
+    },
+    {
+      "device_description": "Apple iPad",
+      "friendly_name": "Apple iPad",
+      "hardware_id": "VID_05AC&PID_12AB&MI_00",
+      "instance": "8&988eaa4&0&0000",
+      "manufacturer": "Apple Inc.",
+      "service": "WUDFWpdMtp"
+    },
+    {
+      "device_description": "@usbhub3.inf,%usbhub3.usb20hubdesc%;Generic USB Hub",
+      "friendly_name": "",
+      "hardware_id": "VID_05E3&PID_0610",
+      "instance": "6&39ad5ec5&0&1",
+      "manufacturer": "@usbhub3.inf,%generic.mfg%;(Standard USB HUBs)",
+      "service": "USBHUB3"
+    },
+    {
+      "device_description": "@usbhub3.inf,%usbhub3.usb20hubdesc%;Generic USB Hub",
+      "friendly_name": "",
+      "hardware_id": "VID_05E3&PID_0610",
+      "instance": "6&39ad5ec5&0&2",
+      "manufacturer": "@usbhub3.inf,%generic.mfg%;(Standard USB HUBs)",
+      "service": "USBHUB3"
+    },
+    {
+      "device_description": "@usbhub3.inf,%usbhub3.usb30hubdesc%;Generic SuperSpeed USB Hub",
+      "friendly_name": "",
+      "hardware_id": "VID_05E3&PID_0626",
+      "instance": "6&39ad5ec5&0&3",
+      "manufacturer": "@usbhub3.inf,%generic.mfg%;(Standard USB HUBs)",
+      "service": "USBHUB3"
+    },
+    {
+      "device_description": "@oem45.inf,%rtl8153.devicedesc%;Realtek USB GbE Family Controller",
+      "friendly_name": "Realtek USB GbE Family Controller",
+      "hardware_id": "VID_0BDA&PID_8153",
+      "instance": "DF1300E04C4E2528",
+      "manufacturer": "@oem45.inf,%realtek%;Realtek",
+      "service": "rtu53cx22x64"
+    },
+    {
+      "device_description": "@usb.inf,%usb\\composite.devicedesc%;USB Composite Device",
+      "friendly_name": "",
+      "hardware_id": "VID_0D8C&PID_0014",
+      "instance": "001",
+      "manufacturer": "@usb.inf,%generic.mfg%;(Standard USB Host Controller)",
+      "service": "usbccgp"
+    },
+    {
+      "device_description": "@wdma_usb.inf,%usb\\class_01.devicedesc%;USB Audio Device",
+      "friendly_name": "MPOW HC6",
+      "hardware_id": "VID_0D8C&PID_0014&MI_00",
+      "instance": "7&1b26eabb&1&0000",
+      "manufacturer": "@wdma_usb.inf,%mfgname%;Microsoft",
+      "service": "usbaudio"
+    },
+    {
+      "device_description": "@input.inf,%hid.devicedesc%;USB Input Device",
+      "friendly_name": "",
+      "hardware_id": "VID_0D8C&PID_0014&MI_03",
+      "instance": "7&1b26eabb&1&0003",
+      "manufacturer": "@input.inf,%stdmfg%;(Standard system devices)",
+      "service": "HidUsb"
+    },
+    {
+      "device_description": "@usb.inf,%usb\\composite.devicedesc%;USB Composite Device",
+      "friendly_name": "",
+      "hardware_id": "VID_1038&PID_12F0",
+      "instance": "6&3b683a3c&0&2",
+      "manufacturer": "@usb.inf,%generic.mfg%;(Standard USB Host Controller)",
+      "service": "usbccgp"
+    },
+    {
+      "device_description": "@input.inf,%hid.devicedesc%;USB Input Device",
+      "friendly_name": "",
+      "hardware_id": "VID_1038&PID_12F0&MI_00",
+      "instance": "7&5cadc68&2&0000",
+      "manufacturer": "@input.inf,%stdmfg%;(Standard system devices)",
+      "service": "HidUsb"
+    },
+    {
+      "device_description": "@input.inf,%hid.devicedesc%;USB Input Device",
+      "friendly_name": "",
+      "hardware_id": "VID_1038&PID_12F0&MI_01",
+      "instance": "7&5cadc68&2&0001",
+      "manufacturer": "@input.inf,%stdmfg%;(Standard system devices)",
+      "service": "HidUsb"
+    },
+    {
+      "device_description": "@usb.inf,%usb\\composite.devicedesc%;USB Composite Device",
+      "friendly_name": "",
+      "hardware_id": "VID_1038&PID_12F2",
+      "instance": "6&3b683a3c&0&3",
+      "manufacturer": "@usb.inf,%generic.mfg%;(Standard USB Host Controller)",
+      "service": "usbccgp"
+    },
+    {
+      "device_description": "@wdma_usb.inf,%usb\\class_01.devicedesc%;USB Audio Device",
+      "friendly_name": "Arctis Nova 4",
+      "hardware_id": "VID_1038&PID_12F2&MI_00",
+      "instance": "7&217596aa&0&0000",
+      "manufacturer": "@wdma_usb.inf,%mfgname%;(Generic USB Audio)",
+      "service": "usbaudio"
+    },
+    {
+      "device_description": "@input.inf,%hid.devicedesc%;USB Input Device",
+      "friendly_name": "",
+      "hardware_id": "VID_1038&PID_12F2&MI_03",
+      "instance": "7&217596aa&0&0003",
+      "manufacturer": "@input.inf,%stdmfg%;(Standard system devices)",
+      "service": "HidUsb"
+    },
+    {
+      "device_description": "@input.inf,%hid.devicedesc%;USB Input Device",
+      "friendly_name": "",
+      "hardware_id": "VID_1038&PID_12F2&MI_04",
+      "instance": "7&217596aa&0&0004",
+      "manufacturer": "@input.inf,%stdmfg%;(Standard system devices)",
+      "service": "HidUsb"
+    },
+    {
+      "device_description": "@input.inf,%hid.devicedesc%;USB Input Device",
+      "friendly_name": "",
+      "hardware_id": "VID_1038&PID_12F2&MI_05",
+      "instance": "7&217596aa&0&0005",
+      "manufacturer": "@input.inf,%stdmfg%;(Standard system devices)",
+      "service": "HidUsb"
+    },
+    {
+      "device_description": "@usb.inf,%usb\\composite.devicedesc%;USB Composite Device",
+      "friendly_name": "",
+      "hardware_id": "VID_13D3&PID_3579",
+      "instance": "000000000",
+      "manufacturer": "@usb.inf,%generic.mfg%;(Standard USB Host Controller)",
+      "service": "usbccgp"
+    },
+    {
+      "device_description": "@oem77.inf,%generic.devicedesc%;MediaTek Bluetooth Adapter",
+      "friendly_name": "",
+      "hardware_id": "VID_13D3&PID_3579&MI_00",
+      "instance": "8&7311a53&0&0000",
+      "manufacturer": "@oem77.inf,%mtk%;Mediatek Inc.",
+      "service": "BTHUSB"
+    },
+    {
+      "device_description": "@usb.inf,%usb\\composite.devicedesc%;USB Composite Device",
+      "friendly_name": "",
+      "hardware_id": "VID_1A2C&PID_503F",
+      "instance": "7&35646aa3&0&2",
+      "manufacturer": "@usb.inf,%generic.mfg%;(Standard USB Host Controller)",
+      "service": "usbccgp"
+    },
+    {
+      "device_description": "@usb.inf,%usb\\composite.devicedesc%;USB Composite Device",
+      "friendly_name": "",
+      "hardware_id": "VID_1A2C&PID_503F",
+      "instance": "7&35646aa3&0&3",
+      "manufacturer": "@usb.inf,%generic.mfg%;(Standard USB Host Controller)",
+      "service": "usbccgp"
+    },
+    {
+      "device_description": "@input.inf,%hid.devicedesc%;USB Input Device",
+      "friendly_name": "",
+      "hardware_id": "VID_1A2C&PID_503F&MI_00",
+      "instance": "8&13765a20&2&0000",
+      "manufacturer": "@input.inf,%stdmfg%;(Standard system devices)",
+      "service": "HidUsb"
+    },
+    {
+      "device_description": "@input.inf,%hid.devicedesc%;USB Input Device",
+      "friendly_name": "",
+      "hardware_id": "VID_1A2C&PID_503F&MI_00",
+      "instance": "8&bca97b&2&0000",
+      "manufacturer": "@input.inf,%stdmfg%;(Standard system devices)",
+      "service": "HidUsb"
+    },
+    {
+      "device_description": "@input.inf,%hid.devicedesc%;USB Input Device",
+      "friendly_name": "",
+      "hardware_id": "VID_1A2C&PID_503F&MI_01",
+      "instance": "8&13765a20&2&0001",
+      "manufacturer": "@input.inf,%stdmfg%;(Standard system devices)",
+      "service": "HidUsb"
+    },
+    {
+      "device_description": "@input.inf,%hid.devicedesc%;USB Input Device",
+      "friendly_name": "",
+      "hardware_id": "VID_1A2C&PID_503F&MI_01",
+      "instance": "8&bca97b&2&0001",
+      "manufacturer": "@input.inf,%stdmfg%;(Standard system devices)",
+      "service": "HidUsb"
+    },
+    {
+      "device_description": "@usb.inf,%usb\\composite.devicedesc%;USB Composite Device",
+      "friendly_name": "",
+      "hardware_id": "VID_2367&PID_0020",
+      "instance": "E3PUI15N",
+      "manufacturer": "@usb.inf,%generic.mfg%;(Standard USB Host Controller)",
+      "service": "usbccgp"
+    },
+    {
+      "device_description": "@wdma_usb.inf,%usb\\class_01.devicedesc%;USB Audio Device",
+      "friendly_name": "EP-133",
+      "hardware_id": "VID_2367&PID_0020&MI_00",
+      "instance": "7&35d176b5&1&0000",
+      "manufacturer": "@wdma_usb.inf,%mfgname%;Microsoft",
+      "service": "usbaudio"
+    },
+    {
+      "device_description": "Redmi A5",
+      "friendly_name": "",
+      "hardware_id": "VID_2717&PID_FF40",
+      "instance": "863d0058304830363451093a27aacb",
+      "manufacturer": "Xiaomi",
+      "service": "WUDFWpdMtp"
+    },
+    {
+      "device_description": "@usb.inf,%usb\\composite.devicedesc%;USB Composite Device",
+      "friendly_name": "",
+      "hardware_id": "VID_3277&PID_0091",
+      "instance": "0x0001",
+      "manufacturer": "@usb.inf,%generic.mfg%;(Standard USB Host Controller)",
+      "service": "usbccgp"
+    },
+    {
+      "device_description": "@usbvideo.inf,%usbvideo.devicedesc%;USB Video Device",
+      "friendly_name": "USB2.0 HD UVC WebCam",
+      "hardware_id": "VID_3277&PID_0091&MI_00",
+      "instance": "7&21a126&0&0000",
+      "manufacturer": "@usbvideo.inf,%msft%;Microsoft",
+      "service": "usbvideo"
+    },
+    {
+      "device_description": "@winusb.inf,%usb\\ms_comp_winusb.devicedesc%;WinUsb Device",
+      "friendly_name": "Camera DFU Device",
+      "hardware_id": "VID_3277&PID_0091&MI_02",
+      "instance": "7&21a126&0&0002",
+      "manufacturer": "@winusb.inf,%generic.mfg%;WinUsb Device",
+      "service": "WINUSB"
+    }
+  ],
+  "winmm_error": null
+}

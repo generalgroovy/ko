@@ -1,0 +1,16 @@
+{
+  "active_notes": {},
+  "clock_ticks": 0,
+  "controllers": {},
+  "last_bank_lsb": null,
+  "last_bank_msb": null,
+  "last_program": null,
+  "limitations": [
+    "Effects, selected project, sample names, pattern contents, and most front-panel state are not queryable through the public MIDI implementation.",
+    "Playing state is inferred from MIDI start/stop/clock and observed note traffic.",
+    "Effect movement can only be mirrored when the device sends MIDI CC or the app sends a mapped controller."
+  ],
+  "mod_wheel": null,
+  "recent_events": [],
+  "transport": "unknown"
+}

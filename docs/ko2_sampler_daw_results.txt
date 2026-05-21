@@ -1,0 +1,783 @@
+KO II / DAW Integration Exploration Results
+Generated: 2026-05-19
+Workspace: C:\Users\sende\PycharmProjects\MiniLlama
+
+Scope
+-----
+Goal: explore safe computer-to-sampler interaction, determine what functionality is visible from the code/workstation, compile results, and implement a first safe Python foundation for real-time DAW-style control.
+
+Important privacy note: private chain-of-thought is not included. This file records observable findings, engineering decisions, test steps, limits, and next implementation prompts.
+
+
+Repository Findings
+-------------------
+The existing MiniLlama project was a transit-dialog simulator. It had no existing KO II, sampler, MIDI, DAW, USB, or audio-device integration code.
+
+Relevant existing patterns:
+- Python package layout under minillama/
+- unittest test suite under tests/
+- Small dataclass-based models
+- Minimal dependency footprint in requirements.txt
+- GUI exists, but the new sampler work was kept isolated so the transit app remains unchanged
+
+
+Local Device / Dependency Exploration
+-------------------------------------
+Python package availability inside .venv:
+- mido: not installed
+- rtmidi: not installed
+- sounddevice: not installed
+- pygame: not installed
+- pyusb/libusb: not installed
+- numpy: installed
+
+Windows sound devices discovered:
+- QUAD-CAPTURE, Roland, OK, USB\VID_0582&PID_012F\0000AD28B6A2D88ABA38A72B2B0622E0
+- Realtek High Definition Audio, Realtek, OK
+- AMD Streaming Audio Device, AMD, OK
+- AMD Audio Device, AMD, OK
+- AMD High Definition Audio Device, Advanced Micro Devices, OK
+
+Windows MIDI ports discovered through WinMM:
+- MIDI outputs:
+  - Microsoft GS Wavetable Synth
+  - QUAD-CAPTURE
+- MIDI inputs:
+  - QUAD-CAPTURE
+
+Limit reached:
+- The KO II / EP-133 was not visible as a named Windows sound or MIDI endpoint through the tested APIs.
+- Broad PnP scans timed out, so they were not reliable for this iteration.
+- Live MIDI send cannot be tested through mido/python-rtmidi until those packages are installed.
+- No write-style test was sent to the hardware. All hardware-facing tests were read-only or dry-run.
+
+Interpretation:
+- If the KO II is physically connected, it is either not exposing itself as a named class-compliant MIDI/audio device, is connected through the Roland QUAD-CAPTURE, needs a different USB mode/cable/driver path, or is visible only through an API not currently installed in the environment.
+- The safest next hardware step is to confirm whether the KO II appears in Windows Device Manager, Teenage Engineering utility software, or as a MIDI endpoint after installing a live MIDI backend.
+
+
+Implemented Python App Foundation
+---------------------------------
+New package:
+- ko2_sampler_daw/ko2_daw/
+
+Entry point:
+- From ko2_sampler_daw/: python -m ko2_daw
+- From repository root: .venv\Scripts\python.exe ko2_sampler_daw\run_ko2_daw.py
+
+Implemented files:
+- ko2_sampler_daw/ko2_daw/config.py
+  - DAWConfig
+  - DeviceSafetyConfig
+  - BPM, MIDI channel, MIDI clock, allow-list, dry-run, SysEx limits, backup directory
+
+- ko2_sampler_daw/ko2_daw/midi.py
+  - MidiMessage model with validation
+  - note_on, note_off, control_change, program_change, clock, start, stop, sysex constructors
+  - DryRunMidiBackend for safe tests
+  - MidoMidiBackend for future live MIDI
+  - Windows WinMM fallback MIDI port enumeration without extra dependencies
+  - capability report
+
+- ko2_sampler_daw/ko2_daw/controller.py
+  - DAWController
+  - start/stop transport
+  - MIDI clock tick
+  - note play/release
+  - CC and program change
+  - incoming message recording hook
+  - panic method sending all-notes-off/all-sound-off through the same safety gate
+  - live output allow-list enforcement
+  - SysEx blocked by default
+
+- ko2_sampler_daw/ko2_daw/sequencer.py
+  - StepEvent
+  - deterministic StepSequencer for note-on/note-off rendering
+
+- ko2_sampler_daw/ko2_daw/project_store.py
+  - ProjectSnapshot
+  - SafeProjectStore
+  - atomic JSON writes
+  - backups before overwrite
+  - path traversal rejection
+
+- ko2_sampler_daw/ko2_daw/app.py
+  - CLI
+  - list MIDI capability
+  - dry-run note tests
+  - dry-run clock tests
+  - optional project snapshot save
+  - explicit --live mode for future hardware send
+
+- ko2_sampler_daw/run_ko2_daw.py
+  - module entry point
+
+- ko2_sampler_daw/tests/test_daw_controller.py
+  - safety, dry-run, sequencer, SysEx, live allow-list, and file-integrity tests
+
+
+Safety Model
+------------
+Default behavior is safe:
+- dry_run=True by default
+- no live MIDI messages are sent unless --live is provided
+- live mode requires an output port that matches --allow-output
+- SysEx is blocked unless explicitly enabled in code/config
+- SysEx payload size is bounded by config
+- project saves are atomic
+- existing project files are backed up before overwrite
+- project paths must remain inside the configured project root
+- tests do not require hardware
+
+Safe live-send example for a future setup:
+.venv\Scripts\python.exe ko2_sampler_daw\run_ko2_daw.py --live --allow-output "KO II" --output-port "KO II MIDI" --note 60
+
+Current dry-run examples:
+.venv\Scripts\python.exe ko2_sampler_daw\run_ko2_daw.py --list
+.venv\Scripts\python.exe ko2_sampler_daw\run_ko2_daw.py --note 60 --clock-ticks 2
+.venv\Scripts\python.exe ko2_sampler_daw\run_ko2_daw.py --note 60 --save-project ko2_session.json
+
+
+Verification
+------------
+Focused tests:
+cd ko2_sampler_daw
+..\.venv\Scripts\python.exe -m unittest discover -s tests
+Result: 6 tests passed.
+
+Full suite:
+.venv\Scripts\python.exe -m unittest discover -s tests
+Result after moving standalone files out of the project test tree: 32 MiniLlama tests passed.
+
+CLI dry-run:
+.venv\Scripts\python.exe ko2_sampler_daw\run_ko2_daw.py --list
+Result:
+- mido_installed: False
+- rtmidi_installed: False
+- input_ports: ['QUAD-CAPTURE']
+- output_ports: ['Microsoft GS Wavetable Synth', 'QUAD-CAPTURE']
+- winmm_error: None
+- error: mido not installed; live MIDI send unavailable.
+
+
+Recommended Next Iteration
+--------------------------
+1. Install live MIDI dependencies in the venv:
+   .venv\Scripts\python.exe -m pip install mido python-rtmidi
+
+2. Re-run:
+   .venv\Scripts\python.exe ko2_sampler_daw\run_ko2_daw.py --list
+
+3. Confirm whether KO II appears as a MIDI input/output.
+
+4. If KO II appears, test only with dry-run first, then use live mode with output allow-list.
+
+5. Add a real-time GUI only after stable MIDI discovery/send/receive behavior is confirmed.
+
+
+Professional Prompt For Next Self
+---------------------------------
+You are continuing work in C:\Users\sende\PycharmProjects\MiniLlama on a safe Python DAW/sampler-control app for a Teenage Engineering EP-133 K.O. II / KO II style sampler.
+
+Current implementation lives in ko2_sampler_daw/ko2_daw/ and is invoked from the repository root with:
+.venv\Scripts\python.exe ko2_sampler_daw\run_ko2_daw.py
+
+Hard requirements:
+- Preserve all existing MiniLlama transit-dialog behavior and tests.
+- Keep hardware interaction safe by default.
+- Dry-run must remain the default.
+- Live MIDI output must require both --live and an allow-listed output-port substring.
+- Block SysEx by default. Any SysEx support must require explicit config, payload-size limits, and clear tests.
+- Never overwrite project/session files without atomic write and backup behavior.
+- Reject project paths escaping the configured project root.
+- Add tests for every new hardware-facing guard before expanding live functionality.
+- Avoid adding heavyweight dependencies unless needed and documented.
+
+Current known environment:
+- mido and python-rtmidi are not installed.
+- WinMM sees MIDI output ports: Microsoft GS Wavetable Synth, QUAD-CAPTURE.
+- WinMM sees MIDI input port: QUAD-CAPTURE.
+- KO II is not currently visible as a named MIDI/audio endpoint from the probes already run.
+
+Build the app iteratively in this order:
+1. Improve discovery:
+   - Add structured device reports for WinMM and mido.
+   - Include exact input/output names, backend source, and errors.
+   - Add a command to save a read-only device report JSON.
+
+2. Add live receive:
+   - After mido/python-rtmidi are installed, implement MIDI input monitoring.
+   - Record incoming messages with timestamps.
+   - Save incoming logs atomically.
+   - Do not echo messages to output unless an explicit safe route is configured.
+
+3. Add real-time transport:
+   - Implement a clock scheduler with start/stop, BPM changes, and jitter measurement.
+   - Keep tests deterministic by separating scheduler math from wall-clock threads.
+   - Add panic handling that passes through existing safety gates.
+
+4. Add DAW session model:
+   - Tracks, clips, steps, notes, CC automation, device profile, tempo, and routing.
+   - Store as JSON with schema version.
+   - Add migrations for future schema changes.
+   - Maintain backups and checksums.
+
+5. Add KO II profile:
+   - Treat all mappings as user-editable until verified.
+   - Keep default profile conservative: transport, note trigger, MIDI clock, CC capture.
+   - Do not claim unverified KO II-specific CC/SysEx behavior.
+
+6. Add GUI:
+   - Use a compact control-surface layout, not a marketing page.
+   - Include device status, MIDI ports, transport, BPM, clock state, activity log, session save/load, and panic.
+   - Show live mode state prominently.
+   - Disable unsafe controls until configured.
+
+7. Add integration tests:
+   - Unit tests for validation, store integrity, scheduling, routing, and profiles.
+   - Dry-run CLI tests.
+   - Optional hardware smoke tests gated by environment variables and skipped by default.
+
+Definition of done for each iteration:
+- Implementation is isolated and typed where practical.
+- Existing tests still pass.
+- New behavior has focused tests.
+- CLI provides a safe path to inspect before sending.
+- Documentation/report is updated with exact observed limits and commands.
+
+
+Current Iteration Update - 2026-05-19
+-------------------------------------
+Workspace tested directly:
+- C:\Users\sende\PycharmProjects\ko2_sampler_daw
+
+Interpreter:
+- py resolved to Python 3.14 at C:\Users\sende\AppData\Local\Python\pythoncore-3.14-64\python.exe
+- The plain python command failed on this machine, so verification used py.
+
+Read-only MIDI discovery:
+- Command: py run_ko2_daw.py --list --report-json daw_projects\midi_report.json
+- mido_installed: True
+- rtmidi_installed: False
+- live_midi_available: False
+- input_ports:
+  - QUAD-CAPTURE
+- output_ports:
+  - Microsoft GS Wavetable Synth
+  - QUAD-CAPTURE
+- error: No module named 'rtmidi'
+- KO II was not visible as a named MIDI input or output in this check.
+
+Dry-run behavior:
+- Command: py run_ko2_daw.py --note 60 --clock-ticks 2
+- Result: dry-run only; no MIDI was sent to hardware.
+- Emitted dry-run messages: start, two clock ticks, stop, note_on 60, note_off 60.
+
+Usability and clarity improvements:
+- Added --report-json to save a read-only MIDI capability report.
+- Capability output now shows live_midi_available, port lists, backend errors, and hints.
+- Dry-run note/clock output now states explicitly that no MIDI was sent to hardware.
+- Live mode can auto-select an output only when --allow-output matches exactly one visible port.
+- Live mode rejects missing or ambiguous output selection with clear error text.
+- CLI validation errors now exit cleanly without a Python traceback.
+
+Verification:
+- Command: py -m unittest discover -s tests
+- Result: 10 tests passed.
+
+
+Out-of-Box Launch Fix - 2026-05-19
+----------------------------------
+Problem:
+- Running python run_ko2_daw.py with no arguments exited silently.
+- Editable packaging was not a reliable baseline on this machine because Python 3.14 has pip but no setuptools installed.
+
+Changes:
+- python run_ko2_daw.py now opens a safe startup status screen when no arguments are supplied.
+- Added ko2-daw.cmd for an install-free terminal command.
+- Added launch_ko2_daw.cmd for double-click use; it keeps the window open after printing status.
+- Added test_ko2_daw.cmd for one-command test execution.
+- Added README.md with first-run commands.
+- No requirements.txt is needed for dry-run mode because there are no required third-party packages.
+
+Verified commands:
+- python run_ko2_daw.py
+- cmd /c ko2-daw.cmd
+- cmd /c "echo.| launch_ko2_daw.cmd"
+- python -m unittest discover -s tests
+- cmd /c test_ko2_daw.cmd
+
+Result:
+- All launch commands show the startup screen.
+- Tests pass: 11 tests passed.
+
+
+Physical-Interface GUI Update - 2026-05-19
+------------------------------------------
+Reference checked:
+- Official Teenage Engineering EP-133 hardware overview and buttons/combos guide.
+- Relevant visible control groups: 12 sample pads, 4 group pads, fader, X/Y knobs, MIDI/USB workflow, and transport-oriented controls.
+
+Changes:
+- Added ko2_daw/gui.py using standard-library tkinter so no GUI dependency install is required.
+- Default launch now opens a KO II-style desktop control surface.
+- Added --status for the previous text-only startup/status view.
+- GUI remains dry-run by default and uses DAWController with DryRunMidiBackend.
+- GUI includes LCD-style device/status panel, GROUP A-D buttons, 12 pads, SOUND/MAIN/TEMPO/FX/SHIFT/FADER mode strip, REC/PLAY/STOP/PANIC transport, X/Y sliders, fader, save, refresh MIDI, and an activity log.
+
+Verified commands:
+- python -m py_compile ko2_daw\gui.py ko2_daw\app.py
+- python -m unittest discover -s tests
+- cmd /c ko2-daw.cmd --status
+- Tk smoke test constructed KO2DawApp and destroyed the window cleanly.
+
+
+EP-133 USB Verification / Native MIDI Update - 2026-05-19
+---------------------------------------------------------
+Observed USB device:
+- Hardware ID: VID_2367&PID_0020
+- Composite instance: E3PUI15N
+- Interface: VID_2367&PID_0020&MI_00
+- Friendly name: EP-133
+- Windows service: usbaudio
+
+Observed MIDI endpoints:
+- Inputs: QUAD-CAPTURE
+- Outputs: Microsoft GS Wavetable Synth, QUAD-CAPTURE
+- No EP-133, KO II, or KO2-named MIDI input/output endpoint is exposed through WinMM.
+
+Interpretation:
+- The KO II / EP-133 is physically connected over USB and visible to Windows.
+- Windows currently exposes it as USB Audio, not as a MIDI endpoint.
+- Direct MIDI communication with the KO II is therefore not ready yet through this app.
+- Native Windows MIDI communication is available for visible WinMM MIDI output ports.
+
+Program changes:
+- Added WinMMMidiBackend for native Windows short MIDI output without python-rtmidi.
+- Added live backend selector: --midi-backend auto|winmm|mido.
+- MIDI capability report now includes native_winmm_available, live_backend, ko2_usb_connected, ko2_midi_ready, ko2_usb_devices, and ko2_midi_ports.
+- GUI status now shows EP-133 USB vs EP-133 MIDI readiness separately.
+
+Verified commands:
+- python -m py_compile ko2_daw\midi.py ko2_daw\app.py ko2_daw\gui.py
+- python -m unittest discover -s tests
+- python run_ko2_daw.py --list --report-json daw_projects\usb_midi_report.json
+- Tk smoke test: GUI reported "EP-133 USB seen / MIDI endpoint missing".
+
+Current report summary:
+- live_midi_available: True
+- live_backend: winmm
+- native_winmm_available: True
+- ko2_usb_connected: True
+- ko2_midi_ready: False
+
+
+Remote Control / State Monitor Update - 2026-05-19
+--------------------------------------------------
+Reference:
+- Official EP-133 system/MIDI guide says notes are mapped as:
+  - Group A: 36-47
+  - Group B: 48-59
+  - Group C: 60-71
+  - Group D: 72-83
+- The public MIDI chart exposes notes, clock/transport, bank select, mod wheel, and common MIDI messages, but no full state dump for effects, sample names, selected scene, or project contents.
+
+Changes:
+- Added ko2_daw/state.py with KO2RuntimeState.
+- Added WinMMInputMonitor for native Windows incoming MIDI short messages.
+- Added CLI state monitoring:
+  - python run_ko2_daw.py --monitor-input --monitor-seconds 10 --state-json daw_projects\ko2_state.json
+- Added CLI remote controls:
+  - --cc CONTROL VALUE
+  - --bank-msb VALUE
+  - --bank-lsb VALUE
+  - --program VALUE
+- GUI pads now use official EP-133 group note ranges.
+- GUI fader now sends CC 1 / mod wheel in dry-run and mirrors it into the inferred state.
+- GUI state panel shows transport, active notes, clock ticks, and mod value.
+
+Verified:
+- python -m unittest discover -s tests
+- Result: 17 tests passed.
+- python run_ko2_daw.py --monitor-input --monitor-seconds 1 --state-json daw_projects\ko2_state.json
+- python run_ko2_daw.py --cc 1 64 --program 2 --bank-msb 0 --bank-lsb 1
+- Tk smoke test confirmed GUI mod-wheel state updates.
+
+
+Professional Companion Expansion - 2026-05-20
+---------------------------------------------
+Context:
+- The requested reference thread codex://threads/019e40d6-52ca-7393-8388-baa66bff23dc is not available from this thread, so the implementation was expanded from the current project state and observable EP-133 MIDI/USB behavior.
+
+Professional software features added:
+- ko2_daw/session.py
+  - DeviceProfile
+  - PadAssignment
+  - RoutingConfig
+  - CompanionSession
+  - CompanionSessionStore
+  - Default EP-133 profile with 48 pad assignments and documented supported/unsupported capabilities
+- ko2_daw/diagnostics.py
+  - Device readiness report
+  - Distinguishes not detected, USB-only, and MIDI-ready states
+- CLI:
+  - --doctor
+  - --init-session companion_session.json
+- GUI:
+  - Session status
+  - SAVE SESSION
+  - DOCTOR
+  - Session BPM/group sync
+  - Device readiness messaging
+
+Verified:
+- python -m unittest discover -s tests
+- Result: 20 tests passed.
+- python run_ko2_daw.py --doctor
+- Result: status usb-only, EP-133 USB connected, KO II MIDI not ready.
+- python run_ko2_daw.py --init-session companion_session.json
+- Result: saved daw_projects\companion_session.json.
+- Tk smoke test constructed the expanded GUI session model.
+
+
+generalgroovy/ko2 SysEx Lab Reference Port - 2026-05-20
+-------------------------------------------------------
+Reference inspected:
+- Repository: https://github.com/generalgroovy/ko2
+- Branch: codex/ko2-sysex-lab
+- Commit: dd68354d6a5df4cb8640463652e1cf6ac8fc78de
+- Key files: te-sysex.js, app.js, docs/protocol-notes.md
+
+Functionality ported into Python:
+- ko2_daw/te_sysex.py
+  - TE SysEx constants and frame shape
+  - 7-bit payload pack/unpack
+  - Universal identity request and parser
+  - TE frame build/parse
+  - File protocol read-only payload builders:
+    - file init
+    - list
+    - info
+    - metadata get
+  - File init/list/metadata response parsers
+  - Metadata string parser
+  - Status text mapping
+  - Explicit write blocking for PUT, DELETE, MOVE, unsupported PLAYBACK payloads, and metadata writes
+- CLI:
+  - --sysex-probe self-test
+  - --sysex-probe identity
+  - --sysex-probe te-echo
+  - --sysex-probe file-init
+  - --sysex-probe root-list
+  - --sysex-probe root-info
+  - --sysex-probe metadata-get
+- GUI:
+  - SYSEX LAB button showing self-test, write-block state, identity frame, and file-init frame.
+
+Safety retained:
+- The Python app does not send sample upload, delete, move, restore, or metadata write commands.
+- The generated SysEx surfaces are probe-oriented until device MIDI/SysEx transport is verified.
+
+Verified:
+- python -m unittest discover -s tests
+- Result: 24 tests passed.
+- python run_ko2_daw.py --sysex-probe self-test
+- python run_ko2_daw.py --sysex-probe identity
+- python run_ko2_daw.py --sysex-probe file-init
+
+
+KO II Route Implementation - 2026-05-20
+---------------------------------------
+Implemented:
+- ko2_daw/routing.py
+  - Resolves KO II control routes:
+    - direct EP-133/KO II USB MIDI endpoint when visible
+    - QUAD-CAPTURE DIN MIDI route when direct USB MIDI is missing
+    - USB-audio-only blocked state when no MIDI route exists
+- CLI:
+  - --ko2-route auto
+  - --ko2-route usb-midi
+  - --ko2-route quad-capture
+- Diagnostics:
+  - --doctor now prints route status, route input/output, route message, and required user action.
+- GUI:
+  - shows route status in the live state strip and Doctor dialog.
+
+Current route on this machine:
+- route_status: din-interface-ready
+- route_output: QUAD-CAPTURE
+- route_input: QUAD-CAPTURE
+- required physical connection: QUAD-CAPTURE MIDI OUT -> KO II MIDI IN
+
+Verified:
+- python -m unittest discover -s tests
+- Result: 27 tests passed.
+- python run_ko2_daw.py --ko2-route auto --note 36
+- Result: dry-run note routed to QUAD-CAPTURE.
+- python run_ko2_daw.py --doctor
+- Tk smoke test reported: din-interface-ready: QUAD-CAPTURE.
+
+
+USB-C Re-test / USB Class Diagnostics - 2026-05-20
+--------------------------------------------------
+User connected EP-133 via USB-C and requested test/fix.
+
+Observed:
+- ko2_usb_connected: True
+- ko2_midi_ready: False
+- EP-133 composite device:
+  - hardware_id: VID_2367&PID_0020
+  - service: usbccgp
+  - usb_class: usb-composite
+- EP-133 interface:
+  - hardware_id: VID_2367&PID_0020&MI_00
+  - friendly_name: EP-133
+  - service: usbaudio
+  - usb_class: usb-audio-control
+  - compatible IDs include USB\Class_01&SubClass_01
+- No USB MIDI streaming class was exposed.
+- No EP-133/KO II MIDI input/output port was exposed through WinMM.
+
+Implemented:
+- MIDI report now includes USB class classification for USB devices.
+- Added --usb-diagnose.
+- USB diagnostics explain that direct USB MIDI normally requires USB Class_01/SubClass_03 or a visible EP-133 MIDI endpoint.
+
+Verified:
+- python -m unittest discover -s tests
+- Result: 28 tests passed.
+- python run_ko2_daw.py --usb-diagnose
+- python run_ko2_daw.py --list --report-json daw_projects\usb_c_report.json
+
+
+Direct USB-C MIDI Ready Re-test - 2026-05-20
+-------------------------------------------
+User connected EP-133 directly via USB-C and requested another test.
+
+Observed:
+- ko2_usb_connected: True
+- ko2_midi_ready: True
+- MIDI input ports:
+  - QUAD-CAPTURE
+  - EP-133
+- MIDI output ports:
+  - Microsoft GS Wavetable Synth
+  - QUAD-CAPTURE
+  - EP-133
+- route_status: usb-midi-ready
+- route_input: EP-133
+- route_output: EP-133
+
+Saved reports:
+- daw_projects\usb_c_direct_report.json
+- daw_projects\ko2_direct_state.json
+
+Verified safe commands:
+- python run_ko2_daw.py --list --report-json daw_projects\usb_c_direct_report.json
+- python run_ko2_daw.py --usb-diagnose
+- python run_ko2_daw.py --doctor
+- python run_ko2_daw.py --ko2-route auto --note 36
+- python run_ko2_daw.py --ko2-route usb-midi --note 36
+- python run_ko2_daw.py --monitor-input --input-port EP-133 --monitor-seconds 1 --state-json daw_projects\ko2_direct_state.json
+- python -m unittest discover -s tests
+- Result: 28 tests passed.
+
+Live control command, if intentionally triggering the sampler:
+- python run_ko2_daw.py --live --midi-backend winmm --ko2-route usb-midi --note 36
+
+
+GUI Live Control and Read-only Device Browser - 2026-05-21
+---------------------------------------------------------
+Implemented:
+- GUI CONNECT EP-133 / DISCONNECT live path using native WinMM.
+- GUI MIDI input monitor with SysEx enabled, feeding inferred runtime state and log.
+- WinMM SysEx output and input buffers for read-only identity/file probes.
+- CLI --send-sysex-probe for read-only live probes.
+- GUI Hardware Files tab:
+  - READ IDENTITY
+  - FILE INIT
+  - LIST ROOT
+  - LIST SELECTED
+  - EXPORT CACHE
+- GUI Samples tab:
+  - local WAV import
+  - local WAV preview
+  - MIDI pad trigger from sample slot
+  - 999-slot manifest export
+
+Verified direct USB-C hardware:
+- python run_ko2_daw.py --list --doctor --report-json daw_projects\post_gui_live_report.json
+- route_status: usb-midi-ready
+- route_input: EP-133
+- route_output: EP-133
+- python run_ko2_daw.py --live --ko2-route usb-midi --sysex-probe identity --send-sysex-probe --sysex-timeout 3
+- identity response: TE032AS001
+- python run_ko2_daw.py --live --ko2-route usb-midi --sysex-probe file-init --send-sysex-probe --sysex-timeout 3
+- file init response: chunk size 512 bytes
+- python run_ko2_daw.py --live --ko2-route usb-midi --sysex-probe root-list --send-sysex-probe --sysex-timeout 3
+- root entries:
+  - node=1000 kind=dir name=sounds
+  - node=2000 kind=dir name=projects
+- python run_ko2_daw.py --live --ko2-route usb-midi --sysex-probe root-list --sysex-node 1000 --send-sysex-probe --sysex-timeout 3
+- sounds entries: 21 PCM files
+- python run_ko2_daw.py --live --ko2-route usb-midi --sysex-probe root-list --sysex-node 2000 --send-sysex-probe --sysex-timeout 3
+- projects entries: 9 entries
+
+Verified tests:
+- python -m unittest discover -s tests
+- Result: 31 tests passed.
+- python -m compileall -q run_ko2_daw.py ko2_daw tests
+
+
+GUI Help and Dense Layout Pass - 2026-05-21
+------------------------------------------
+Implemented:
+- Hover tooltips across the top display, mode keys, group buttons, pads, transport, parameter controls, connection buttons, sample workspace, hardware browser, and log.
+- Help menu with:
+  - Interaction Guide
+  - MIDI And Safety
+  - Current Device Status
+- Reduced outer padding and mode-strip spacing.
+- Rebalanced layout rows so available space goes to pads and workspace tables.
+
+Verified:
+- Tkinter smoke test: GUI created at 1180x760 and destroyed cleanly.
+- python -m unittest discover -s tests
+- Result: 31 tests passed.
+- python -m compileall -q run_ko2_daw.py ko2_daw tests
+
+
+Device Capability Scan and Interaction Rework - 2026-05-21
+---------------------------------------------------------
+Implemented:
+- Added ko2_daw\capabilities.py for repeatable capability probing.
+- Added CLI:
+  - --capability-scan
+  - --capability-scan-live-actions
+  - --capability-report-txt
+- Added CLI transport commands:
+  - --start
+  - --continue-transport
+  - --stop
+- Added MIDI Continue support in the native WinMM backend and DAW controller.
+- Reworked GUI transport to expose PLAY, CONT, STOP instead of implying DAW-style pause.
+- Added GUI Hardware Files SCAN DEVICE button for the confirmed read-only scan:
+  - identity
+  - file init
+  - root
+  - sounds
+  - projects
+- Updated EP-133 device profile with confirmed identity, read-only file browsing, panic, and transport capabilities.
+
+Hardware probe saved:
+- docs\ko2_device_interaction_capabilities.txt
+
+Observed:
+- Direct route: EP-133 input and EP-133 output.
+- Identity: TE032AS001.
+- File init chunk: 512 bytes.
+- Root folders:
+  - sounds node 1000
+  - projects node 2000
+- sounds: 21 PCM entries on first page.
+- projects: 9 project directories.
+- Live short MIDI probes sent successfully:
+  - note 36 on/off
+  - start/stop
+  - continue/stop
+  - clock ticks
+  - CC 1
+  - bank select CC 0/32
+  - program change 0
+  - panic CC 123/120
+- Short MIDI probes did not echo responses from the device. The app therefore mirrors these locally and treats current playing/front-panel/effect/project state as inferred or unknown unless observed from input traffic.
+
+Verified:
+- python -m unittest discover -s tests
+- Result: 34 tests passed.
+- python -m compileall -q run_ko2_daw.py ko2_daw tests
+- Tkinter smoke test passed.
+
+
+In-App Configuration Rework - 2026-05-21
+----------------------------------------
+Implemented:
+- Added persistent GUI settings model in ko2_daw\config.py.
+- Added Settings tab with:
+  - startup auto-connect prompt
+  - route mode: auto, usb-midi, quad-capture, manual
+  - manual MIDI input/output choices
+  - access mode: read-only, read-playback, expert-write
+  - SysEx enable/disable
+  - auto-scan on connect
+  - selected-file playback enable/disable
+  - playback confirmation enable/disable
+  - SysEx timeout and maximum frame size
+  - recursive scan page/depth/directory limits
+  - expert write arm field
+- Added Configuration menu:
+  - Apply Settings
+  - Save Settings
+  - Reset Settings Form
+- Settings persist to daw_projects\app_settings.json.
+- GUI startup now checks the configured route automatically and prompts to connect when a usable KO II MIDI output is found.
+- CONNECT EP-133 now uses configured route/access/SysEx settings.
+- Hardware scan uses configured timeout, pages, depth, and directory limits.
+- Hardware file playback respects configured access mode and confirmation policy.
+- Expert write mode only arms low-level write-capable frame construction when the write arm field is exactly WRITE; destructive upload/delete/move/metadata-write GUI actions remain unexposed.
+
+Verified:
+- python -m unittest discover -s tests
+- Result: 37 tests passed.
+- python -m compileall -q run_ko2_daw.py ko2_daw tests
+- Tkinter smoke test passed.
+- python run_ko2_daw.py --status
+
+
+Device File Playback Controls - 2026-05-21
+------------------------------------------
+Implemented:
+- Added TE file playback start/stop payload builder.
+- Adjusted the SysEx safety gate so only PLAYBACK_START and PLAYBACK_STOP are allowed for the playback subcommand.
+- PUT, DELETE, MOVE, metadata writes, and unsupported playback payloads remain blocked.
+- Added Hardware Files actions:
+  - PLAY FILE: sends EP-133 selected-file playback start after confirmation.
+  - STOP FILE: sends EP-133 selected-file playback stop.
+- Updated GUI tooltips, Interaction Guide, MIDI Safety, SysEx Lab, README, and capability notes.
+
+Verified:
+- EP-133 direct USB-C MIDI route is visible:
+  - input: EP-133
+  - output: EP-133
+- python -m unittest discover -s tests
+- Result: 34 tests passed.
+- python -m compileall -q run_ko2_daw.py ko2_daw tests
+- Tkinter smoke test passed.
+- python -m ko2_daw --list
+
+
+Automatic Device File Tree Load - 2026-05-21
+--------------------------------------------
+Implemented:
+- GUI CONNECT EP-133 now starts a read-only recursive device file scan immediately after the MIDI input/output opens.
+- SCAN DEVICE now uses the same recursive loader.
+- The loader scans:
+  - identity
+  - file init
+  - root
+  - every discovered directory
+  - up to 32 pages per directory
+  - up to depth 6 and 500 directories as loop guards
+- The Hardware Files table is cleared and repopulated with full device paths.
+- Duplicate node/path rows are suppressed.
+
+Verified live with connected EP-133:
+- Programmatic GUI connection smoke test bypassed the confirmation dialog.
+- auto_scan_status=device scan complete: 57 directories checked
+- auto_scan_rows=818
+
+Verified:
+- python -m unittest discover -s tests
+- Result: 34 tests passed.
+- python -m compileall -q run_ko2_daw.py ko2_daw tests
+- Tkinter smoke test passed.

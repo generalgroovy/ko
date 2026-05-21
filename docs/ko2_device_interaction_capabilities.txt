@@ -1,0 +1,138 @@
+KO II / EP-133 Device Interaction Capability Scan
+====================================================
+Generated: 2026-05-21T13:56:47
+
+References
+- Official MIDI/system guide: https://teenage.engineering/guides/ep-133/system
+- KO II Web MIDI Lab reference: https://generalgroovy.github.io/ko2/
+- Teenage Engineering EP Sample Tool: https://teenage.engineering/apps/ep-sample-tool
+
+Detected Route
+- route status: usb-midi-ready
+- input port: EP-133
+- output port: EP-133
+- route message: Using visible KO II MIDI output: EP-133
+- ko2_usb_connected: True
+- ko2_midi_ready: True
+- input ports: EP-133, QUAD-CAPTURE
+- output ports: Microsoft GS Wavetable Synth, EP-133, QUAD-CAPTURE
+
+Observed Probe Results
+- identity
+  result: ok
+  sent: sysex 6 bytes
+  received: TE identity TE032AS001
+  note: read-only SysEx probe
+- file-init
+  result: ok
+  sent: sysex 17 bytes
+  received: file init chunk 512 bytes
+  note: read-only SysEx probe
+- list-root
+  result: ok
+  sent: sysex 16 bytes
+  received: file list 2 entries, entry node=1000 kind=dir name=sounds size=0, entry node=2000 kind=dir name=projects size=0
+  note: read-only SysEx probe
+- list-sounds
+  result: ok
+  sent: sysex 16 bytes
+  received: file list 21 entries, entry node=1 kind=file name=001.pcm size=1875000, entry node=2 kind=file name=002.pcm size=43270, entry node=3 kind=file name=003.pcm size=66958, entry node=4 kind=file name=004.pcm size=67826, entry node=5 kind=file name=005.pcm size=24992, entry node=6 kind=file name=006.pcm size=43944, entry node=7 kind=file name=007.pcm size=2950332, entry node=8 kind=file name=008.pcm size=39936, entry node=9 kind=file name=009.pcm size=6658, entry node=10 kind=file name=010.pcm size=17552, entry node=11 kind=file name=011.pcm size=14290, entry node=12 kind=file name=012.pcm size=25050, ... 9 more entries
+  note: read-only SysEx probe
+- list-projects
+  result: ok
+  sent: sysex 16 bytes
+  received: file list 9 entries, entry node=3000 kind=dir name=01 size=0, entry node=4000 kind=dir name=02 size=0, entry node=5000 kind=dir name=03 size=0, entry node=6000 kind=dir name=04 size=0, entry node=7000 kind=dir name=05 size=0, entry node=8000 kind=dir name=06 size=0, entry node=9000 kind=dir name=07 size=0, entry node=10000 kind=dir name=08 size=0, entry node=11000 kind=dir name=09 size=0
+  note: read-only SysEx probe
+- pad-a-dot-note
+  result: sent
+  sent: note_on channel=0 note=36 velocity=24, note_off channel=0 note=36 velocity=0
+  received: none
+  note: No response is still useful: most short MIDI commands are acted on by the device, not echoed.
+- transport-start-stop
+  result: sent
+  sent: start, stop
+  received: none
+  note: No response is still useful: most short MIDI commands are acted on by the device, not echoed.
+- transport-continue-stop
+  result: sent
+  sent: continue, stop
+  received: none
+  note: No response is still useful: most short MIDI commands are acted on by the device, not echoed.
+- clock-ticks
+  result: sent
+  sent: clock, clock, clock, stop
+  received: none
+  note: No response is still useful: most short MIDI commands are acted on by the device, not echoed.
+- fader-cc1
+  result: sent
+  sent: control_change channel=0 control=1 value=64
+  received: none
+  note: No response is still useful: most short MIDI commands are acted on by the device, not echoed.
+- bank-select
+  result: sent
+  sent: control_change channel=0 control=0 value=0, control_change channel=0 control=32 value=0
+  received: none
+  note: No response is still useful: most short MIDI commands are acted on by the device, not echoed.
+- program-change-zero
+  result: sent
+  sent: program_change channel=0 program=0
+  received: none
+  note: No response is still useful: most short MIDI commands are acted on by the device, not echoed.
+- panic
+  result: sent
+  sent: control_change channel=0 control=123 value=0, control_change channel=0 control=120 value=0
+  received: none
+  note: No response is still useful: most short MIDI commands are acted on by the device, not echoed.
+
+Capability Matrix
+- Connection: Direct USB-C MIDI input/output through EP-133
+  support: confirmed
+  evidence: WinMM sees EP-133 as both input and output when connected directly.
+  app action: Use --ko2-route usb-midi or CONNECT EP-133 in the GUI.
+- Transport: Start, Continue, Stop, Clock
+  support: confirmed
+  evidence: Official MIDI chart lists system realtime clock and commands. Live scan sends start/continue/stop/clock when enabled.
+  app action: Expose as Start, Continue, Stop, Clock. Avoid labeling Stop as pause.
+- Pads: Trigger group pads with MIDI notes 36-83
+  support: confirmed
+  evidence: Official note map: group A 36-47, B 48-59, C 60-71, D 72-83.
+  app action: Keep 4x12 pad grid and MIDI note mapping.
+- Fader: CC 1 / mod wheel
+  support: confirmed
+  evidence: Official MIDI chart lists CC#1 as recognized/transmitted.
+  app action: Keep fader mapped to CC 1 and mirror observed CC 1 input.
+- Bank Select: CC 0 and CC 32
+  support: confirmed
+  evidence: Official MIDI chart lists CC#0,32.
+  app action: Keep advanced bank-select controls in CLI; keep GUI simple unless a clear workflow is added.
+- Panic: All Notes Off and All Sound Off
+  support: confirmed
+  evidence: Official MIDI chart lists all sound off and all notes off.
+  app action: Keep PANIC prominent and always available.
+- Identity: Universal MIDI identity request
+  support: confirmed
+  evidence: Device answered identity probe during read-only SysEx scan.
+  app action: Use for connection verification and status display.
+- Device Files: Read-only file init/list for sounds and projects
+  support: confirmed
+  evidence: TE SysEx file probes list root, sounds, and projects.
+- Device File Playback: Selected sound/track file preview
+  support: exposed as explicit experimental action
+  evidence: TE SysEx reference exposes PLAYBACK, PLAYBACK_START, and PLAYBACK_STOP constants; GUI now sends only those selected-file preview actions.
+  app action: Use PLAY FILE / STOP FILE from Hardware Files after selecting a file row. Keep upload/delete/move/metadata writes blocked.
+- Current State: Query playing track, selected effect, selected pad, complete project state
+  support: not exposed by tested surface
+  evidence: No public MIDI/SysEx probe tested returned complete current front-panel/project/effect state.
+  app action: Represent these as inferred/unknown unless observed from MIDI traffic.
+- Writes: Upload/delete/move/metadata write/backup restore
+  support: intentionally blocked
+  evidence: Write-capable SysEx commands exist in reference tooling, but are not safe to use without verified backup and restore.
+  app action: Keep blocked in controller and GUI.
+
+Practical Conclusions
+- Direct USB-C MIDI is the correct route on this machine when EP-133 appears as both input and output.
+- The app can send pad triggers, transport start/stop/continue, clock ticks, CC 1 fader output, bank select, program change, panic messages, read-only device file browsing, and explicit selected-file playback preview over the confirmed EP-133 route.
+- The device does not expose a generic query for the current playing scene, selected pad, selected effect, complete project state, or current front-panel mode through the tested public MIDI/SysEx surface.
+- Pause is not a distinct standard MIDI transport command. The available controls are Start, Continue, and Stop. The app should label this as transport Start/Continue/Stop rather than DAW-style play/pause.
+- File and sample upload/delete/move/metadata writes must stay blocked until a backup/restore workflow is fully verified.
+- GUI Settings now makes startup auto-connect, route, SysEx, playback preview, scan limits, and write-frame policy configurable in the app itself.

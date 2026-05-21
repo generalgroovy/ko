@@ -1,0 +1,375 @@
+{
+  "bpm": 120.0,
+  "created_at": "2026-05-20T10:13:35+00:00",
+  "name": "KO II Session",
+  "notes": "",
+  "profile": {
+    "midi_channel": 0,
+    "model": "EP-133",
+    "name": "EP-133 K.O. II default MIDI profile",
+    "pads": [
+      {
+        "color": "#f5f0e4",
+        "group": "A",
+        "label": ".",
+        "name": "A.",
+        "note": 36
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "A",
+        "label": "0",
+        "name": "A0",
+        "note": 37
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "A",
+        "label": "ENTER",
+        "name": "AENTER",
+        "note": 38
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "A",
+        "label": "1",
+        "name": "A1",
+        "note": 39
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "A",
+        "label": "2",
+        "name": "A2",
+        "note": 40
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "A",
+        "label": "3",
+        "name": "A3",
+        "note": 41
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "A",
+        "label": "4",
+        "name": "A4",
+        "note": 42
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "A",
+        "label": "5",
+        "name": "A5",
+        "note": 43
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "A",
+        "label": "6",
+        "name": "A6",
+        "note": 44
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "A",
+        "label": "7",
+        "name": "A7",
+        "note": 45
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "A",
+        "label": "8",
+        "name": "A8",
+        "note": 46
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "A",
+        "label": "9",
+        "name": "A9",
+        "note": 47
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "B",
+        "label": ".",
+        "name": "B.",
+        "note": 48
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "B",
+        "label": "0",
+        "name": "B0",
+        "note": 49
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "B",
+        "label": "ENTER",
+        "name": "BENTER",
+        "note": 50
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "B",
+        "label": "1",
+        "name": "B1",
+        "note": 51
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "B",
+        "label": "2",
+        "name": "B2",
+        "note": 52
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "B",
+        "label": "3",
+        "name": "B3",
+        "note": 53
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "B",
+        "label": "4",
+        "name": "B4",
+        "note": 54
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "B",
+        "label": "5",
+        "name": "B5",
+        "note": 55
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "B",
+        "label": "6",
+        "name": "B6",
+        "note": 56
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "B",
+        "label": "7",
+        "name": "B7",
+        "note": 57
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "B",
+        "label": "8",
+        "name": "B8",
+        "note": 58
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "B",
+        "label": "9",
+        "name": "B9",
+        "note": 59
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "C",
+        "label": ".",
+        "name": "C.",
+        "note": 60
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "C",
+        "label": "0",
+        "name": "C0",
+        "note": 61
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "C",
+        "label": "ENTER",
+        "name": "CENTER",
+        "note": 62
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "C",
+        "label": "1",
+        "name": "C1",
+        "note": 63
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "C",
+        "label": "2",
+        "name": "C2",
+        "note": 64
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "C",
+        "label": "3",
+        "name": "C3",
+        "note": 65
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "C",
+        "label": "4",
+        "name": "C4",
+        "note": 66
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "C",
+        "label": "5",
+        "name": "C5",
+        "note": 67
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "C",
+        "label": "6",
+        "name": "C6",
+        "note": 68
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "C",
+        "label": "7",
+        "name": "C7",
+        "note": 69
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "C",
+        "label": "8",
+        "name": "C8",
+        "note": 70
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "C",
+        "label": "9",
+        "name": "C9",
+        "note": 71
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "D",
+        "label": ".",
+        "name": "D.",
+        "note": 72
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "D",
+        "label": "0",
+        "name": "D0",
+        "note": 73
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "D",
+        "label": "ENTER",
+        "name": "DENTER",
+        "note": 74
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "D",
+        "label": "1",
+        "name": "D1",
+        "note": 75
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "D",
+        "label": "2",
+        "name": "D2",
+        "note": 76
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "D",
+        "label": "3",
+        "name": "D3",
+        "note": 77
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "D",
+        "label": "4",
+        "name": "D4",
+        "note": 78
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "D",
+        "label": "5",
+        "name": "D5",
+        "note": 79
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "D",
+        "label": "6",
+        "name": "D6",
+        "note": 80
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "D",
+        "label": "7",
+        "name": "D7",
+        "note": 81
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "D",
+        "label": "8",
+        "name": "D8",
+        "note": 82
+      },
+      {
+        "color": "#f5f0e4",
+        "group": "D",
+        "label": "9",
+        "name": "D9",
+        "note": 83
+      }
+    ],
+    "supported_controls": {
+      "bank_select": "CC 0 and CC 32",
+      "mod_wheel": "CC 1",
+      "pads": "Note on/off, groups A-D mapped to notes 36-83",
+      "program_change": "Program change",
+      "transport": "MIDI start/stop/clock"
+    },
+    "unsupported_state_queries": [
+      "sample names",
+      "selected effect",
+      "project contents",
+      "pattern contents",
+      "front-panel edit mode"
+    ],
+    "usb_product_id": "PID_0020",
+    "usb_vendor_id": "VID_2367"
+  },
+  "routing": {
+    "allow_output": "KO II",
+    "input_port": "QUAD-CAPTURE",
+    "live_enabled": false,
+    "midi_backend": "auto",
+    "output_port": null
+  },
+  "schema_version": 1,
+  "selected_group": "A",
+  "updated_at": "2026-05-20T10:13:36+00:00"
+}
