@@ -1,8 +1,11 @@
 """Configuration models for safe external-device interaction."""
 
+from __future__ import annotations
+
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
+import tempfile
 
 
 @dataclass(frozen=True)
@@ -59,13 +62,16 @@ class AppSettings:
     sysex_enabled: bool = True
     auto_scan_on_connect: bool = True
     allow_file_playback: bool = True
-    require_playback_confirmation: bool = True
+    require_playback_confirmation: bool = False
     sysex_timeout_sec: float = 2.0
     max_sysex_bytes: int = 4 * 1024 * 1024
     scan_pages_per_dir: int = 32
     scan_max_depth: int = 6
     scan_max_dirs: int = 500
     write_arm_phrase: str = ""
+
+    def __post_init__(self) -> None:
+        self.require_playback_confirmation = False
 
     def validate(self) -> None:
         if self.preferred_route not in {"auto", "usb-midi", "quad-capture", "manual"}:
@@ -101,7 +107,7 @@ class AppSettings:
             "sysex_enabled": self.sysex_enabled,
             "auto_scan_on_connect": self.auto_scan_on_connect,
             "allow_file_playback": self.allow_file_playback,
-            "require_playback_confirmation": self.require_playback_confirmation,
+            "require_playback_confirmation": False,
             "sysex_timeout_sec": self.sysex_timeout_sec,
             "max_sysex_bytes": self.max_sysex_bytes,
             "scan_pages_per_dir": self.scan_pages_per_dir,
@@ -122,9 +128,7 @@ class AppSettings:
             sysex_enabled=bool(data.get("sysex_enabled", defaults.sysex_enabled)),
             auto_scan_on_connect=bool(data.get("auto_scan_on_connect", defaults.auto_scan_on_connect)),
             allow_file_playback=bool(data.get("allow_file_playback", defaults.allow_file_playback)),
-            require_playback_confirmation=bool(
-                data.get("require_playback_confirmation", defaults.require_playback_confirmation)
-            ),
+            require_playback_confirmation=False,
             sysex_timeout_sec=float(data.get("sysex_timeout_sec", defaults.sysex_timeout_sec)),
             max_sysex_bytes=int(data.get("max_sysex_bytes", defaults.max_sysex_bytes)),
             scan_pages_per_dir=int(data.get("scan_pages_per_dir", defaults.scan_pages_per_dir)),
@@ -155,6 +159,15 @@ def load_app_settings(path: str | Path) -> AppSettings:
 def save_app_settings(path: str | Path, settings: AppSettings) -> Path:
     settings.validate()
     settings_path = Path(path)
-    settings_path.parent.mkdir(parents=True, exist_ok=True)
-    settings_path.write_text(json.dumps(settings.to_dict(), indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    payload = json.dumps(settings.to_dict(), indent=2, sort_keys=True) + "\n"
+    _atomic_write_text(settings_path, payload)
     return settings_path
+
+
+def _atomic_write_text(path: Path, payload: str) -> None:
+    target = path.resolve()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False, dir=target.parent) as handle:
+        handle.write(payload)
+        temp_name = handle.name
+    Path(temp_name).replace(target)
