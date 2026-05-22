@@ -1,7 +1,8 @@
-"""Run the safe KO II / MIDI DAW controller."""
+"""Run the KO II MIDI controller."""
 
-from ko2_daw.app import main
+from ko2_daw.launcher import main
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    result = main()
+    raise SystemExit(result)
