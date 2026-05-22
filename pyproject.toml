@@ -24,7 +24,7 @@ dev = [
 ]
 
 [project.scripts]
-ko2-daw = "ko2_daw.app:main"
+ko2-daw = "ko2_daw.launcher:main"
 
 [tool.black]
 line-length = 100
