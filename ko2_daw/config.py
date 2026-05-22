@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-import tempfile
+
+from ko2_daw.io_utils import atomic_write_text
 
 
 @dataclass(frozen=True)
@@ -158,16 +159,5 @@ def load_app_settings(path: str | Path) -> AppSettings:
 
 def save_app_settings(path: str | Path, settings: AppSettings) -> Path:
     settings.validate()
-    settings_path = Path(path)
     payload = json.dumps(settings.to_dict(), indent=2, sort_keys=True) + "\n"
-    _atomic_write_text(settings_path, payload)
-    return settings_path
-
-
-def _atomic_write_text(path: Path, payload: str) -> None:
-    target = path.resolve()
-    target.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False, dir=target.parent) as handle:
-        handle.write(payload)
-        temp_name = handle.name
-    Path(temp_name).replace(target)
+    return atomic_write_text(path, payload)
