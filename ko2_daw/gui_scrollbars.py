@@ -12,7 +12,6 @@ def apply_hardware_scrollbar_patch(gui_module: Any) -> None:
     if getattr(app_class, "_hardware_scrollbar_patch_installed", False):
         return
 
-    tk = gui_module.tk
     ttk = gui_module.ttk
     original_build_hardware_files = app_class._build_hardware_files
 
