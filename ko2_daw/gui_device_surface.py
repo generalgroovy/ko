@@ -68,7 +68,6 @@ def apply_device_surface_patch(gui_module: Any) -> None:
         self._device_surface_ready = False
         self._device_action_buttons = {}
         self._device_group_buttons = {}
-        self._device_meter_segments = []
         self._device_mode = "main"
         self._device_track = "unknown"
         self._device_effect = "none"
@@ -174,7 +173,7 @@ def apply_device_surface_patch(gui_module: Any) -> None:
         )
         self.device_timeline.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 8))
 
-        self.device_volume_scale = _surface_scale(
+        self.device_volume_frame, self.device_volume_scale = _surface_scale(
             tk,
             sliders,
             "VOL",
@@ -183,11 +182,18 @@ def apply_device_surface_patch(gui_module: Any) -> None:
             self._send_device_volume,
         )
         self.device_volume_scale.set(self._device_volume)
-        self.device_volume_scale.pack(side=tk.LEFT, padx=4)
+        self.device_volume_frame.pack(side=tk.LEFT, padx=4)
 
-        self.device_bpm_scale = _surface_scale(tk, sliders, "BPM", 40, 240, self._set_bpm)
+        self.device_bpm_frame, self.device_bpm_scale = _surface_scale(
+            tk,
+            sliders,
+            "BPM",
+            40,
+            240,
+            self._set_bpm,
+        )
         self.device_bpm_scale.set(int(float(self.bpm.get())))
-        self.device_bpm_scale.pack(side=tk.LEFT, padx=4)
+        self.device_bpm_frame.pack(side=tk.LEFT, padx=4)
 
         self._update_device_surface()
         self.root.after(100, self._tick_device_timeline)
@@ -202,9 +208,7 @@ def apply_device_surface_patch(gui_module: Any) -> None:
         else:
             value = action.value
         if action.cc is not None:
-            self._send_midi(
-                MidiMessage.control_change(action.cc, value, channel=self.config.midi_channel)
-            )
+            self._send_midi(MidiMessage.control_change(action.cc, value, channel=self.config.midi_channel))
         original_set_action(self, f"device {action.label.lower()}")
         self._update_device_surface()
 
@@ -212,9 +216,7 @@ def apply_device_surface_patch(gui_module: Any) -> None:
         self.group.set(group)
         self.session.selected_group = group
         self._device_track = f"group {group}"
-        self._send_midi(
-            MidiMessage.program_change(GROUP_PROGRAMS[group], channel=self.config.midi_channel)
-        )
+        self._send_midi(MidiMessage.program_change(GROUP_PROGRAMS[group], channel=self.config.midi_channel))
         original_set_action(self, f"group {group}")
         self._update_device_surface()
 
@@ -383,7 +385,7 @@ def _surface_scale(tk, parent, label: str, low: int, high: int, command):
         highlightthickness=0,
     )
     scale.pack(fill=tk.X)
-    return frame
+    return frame, scale
 
 
 def _set_button_active(button, active: bool) -> None:
