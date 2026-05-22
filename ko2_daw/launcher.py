@@ -27,13 +27,13 @@ def _install_gui_extensions() -> None:
     """Install GUI extensions before creating the Tkinter window."""
 
     from ko2_daw import gui
-    from ko2_daw.gui_device_surface import apply_device_surface_patch
+    from ko2_daw.gui_hardware_face import apply_hardware_face_patch
     from ko2_daw.gui_scrollbars import apply_hardware_scrollbar_patch
     from ko2_daw.hardware_explorer import apply_hardware_explorer_patch
 
+    apply_hardware_face_patch(gui)
     apply_hardware_explorer_patch(gui)
     apply_hardware_scrollbar_patch(gui)
-    apply_device_surface_patch(gui)
 
 
 if __name__ == "__main__":
