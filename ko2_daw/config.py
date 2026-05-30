@@ -48,7 +48,7 @@ class DAWConfig:
         return 60.0 / (self.bpm * 24.0)
 
 
-APP_ACCESS_MODES = ("read-only", "read-playback", "expert-write")
+APP_ACCESS_MODES = ("read-only", "read-playback", "expert-write", "full-lab")
 
 
 @dataclass
@@ -92,11 +92,15 @@ class AppSettings:
 
     @property
     def playback_enabled(self) -> bool:
-        return self.sysex_enabled and self.allow_file_playback and self.access_mode in {"read-playback", "expert-write"}
+        return self.sysex_enabled and self.allow_file_playback and self.access_mode in {
+            "read-playback",
+            "expert-write",
+            "full-lab",
+        }
 
     @property
     def write_enabled(self) -> bool:
-        return self.access_mode == "expert-write" and self.write_arm_phrase.strip().upper() == "WRITE"
+        return self.access_mode in {"expert-write", "full-lab"} and self.write_arm_phrase.strip().upper() == "WRITE"
 
     def to_dict(self) -> dict[str, object]:
         return {
