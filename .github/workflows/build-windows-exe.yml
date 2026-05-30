@@ -1,0 +1,42 @@
+name: build-windows-exe
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'ko2_daw/**'
+      - 'packaging/**'
+      - 'pyproject.toml'
+      - 'build_exe.bat'
+      - '.github/workflows/build-windows-exe.yml'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . pyinstaller pytest
+
+      - name: Run tests
+        run: python -m pytest
+
+      - name: Build executable
+        run: python -m PyInstaller packaging\ko2_daw.spec --clean --noconfirm
+
+      - name: Upload executable folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: KO2-DAW-windows
+          path: dist\KO2-DAW
