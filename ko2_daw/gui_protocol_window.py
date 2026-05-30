@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+MAX_PROTOCOL_RECORDS = 2000
+
 
 def apply_protocol_window_patch(gui_module: Any) -> None:
     """Patch KO2DawApp with a complete communication/protocol monitor."""
@@ -26,6 +28,7 @@ def apply_protocol_window_patch(gui_module: Any) -> None:
         self.protocol_window = None
         self.protocol_tree = None
         self.protocol_detail = None
+        self.protocol_next_id = 0
         original_init(self, root)
 
     def _build_menu(self) -> None:
@@ -79,7 +82,10 @@ def apply_protocol_window_patch(gui_module: Any) -> None:
         self._refresh_protocol_tree()
 
     def _record_protocol(self, direction: str, kind: str, summary: str, raw: str = "") -> None:
+        record_id = str(self.protocol_next_id)
+        self.protocol_next_id += 1
         record = {
+            "id": record_id,
             "time": datetime.now().isoformat(timespec="milliseconds"),
             "direction": direction,
             "kind": kind,
@@ -87,18 +93,28 @@ def apply_protocol_window_patch(gui_module: Any) -> None:
             "raw": raw,
         }
         self.protocol_records.append(record)
-        self.protocol_records = self.protocol_records[-2000:]
+        if len(self.protocol_records) > MAX_PROTOCOL_RECORDS:
+            self.protocol_records = self.protocol_records[-MAX_PROTOCOL_RECORDS:]
         if self.protocol_tree and self.protocol_tree.winfo_exists():
             self._append_protocol_tree_record(record)
 
     def _append_protocol_tree_record(self, record: dict[str, str]) -> None:
-        item_id = str(len(self.protocol_records) - 1)
+        if not self.protocol_tree or not self.protocol_tree.winfo_exists():
+            return
+        item_id = record["id"]
+        if self.protocol_tree.exists(item_id):
+            self.protocol_tree.delete(item_id)
         self.protocol_tree.insert(
             "",
             tk.END,
             iid=item_id,
             values=(record["time"], record["direction"], record["kind"], record["summary"]),
         )
+        children = self.protocol_tree.get_children("")
+        overflow = len(children) - MAX_PROTOCOL_RECORDS
+        if overflow > 0:
+            for stale_item in children[:overflow]:
+                self.protocol_tree.delete(stale_item)
         self.protocol_tree.see(item_id)
 
     def _refresh_protocol_tree(self) -> None:
@@ -106,22 +122,31 @@ def apply_protocol_window_patch(gui_module: Any) -> None:
             return
         for item in self.protocol_tree.get_children():
             self.protocol_tree.delete(item)
-        for index, record in enumerate(self.protocol_records):
+        for record in self.protocol_records:
+            item_id = record["id"]
             self.protocol_tree.insert(
                 "",
                 tk.END,
-                iid=str(index),
+                iid=item_id,
                 values=(record["time"], record["direction"], record["kind"], record["summary"]),
             )
+
+    def _record_for_selected_protocol(self) -> dict[str, str] | None:
+        if not self.protocol_tree:
+            return None
+        selected = self.protocol_tree.selection()
+        if not selected:
+            return None
+        selected_id = selected[0]
+        return next((record for record in self.protocol_records if record["id"] == selected_id), None)
 
     def _show_protocol_detail(self) -> None:
         if not self.protocol_tree or not self.protocol_detail:
             return
-        selected = self.protocol_tree.selection()
         self.protocol_detail.delete("1.0", tk.END)
-        if not selected:
+        record = self._record_for_selected_protocol()
+        if not record:
             return
-        record = self.protocol_records[int(selected[0])]
         lines = [
             f"time: {record['time']}",
             f"direction: {record['direction']}",
@@ -133,12 +158,9 @@ def apply_protocol_window_patch(gui_module: Any) -> None:
         self.protocol_detail.insert(tk.END, "\n".join(lines))
 
     def _copy_selected_protocol(self) -> None:
-        if not self.protocol_tree:
+        record = self._record_for_selected_protocol()
+        if not record:
             return
-        selected = self.protocol_tree.selection()
-        if not selected:
-            return
-        record = self.protocol_records[int(selected[0])]
         text = "\n".join(
             [
                 f"time: {record['time']}",
@@ -153,6 +175,7 @@ def apply_protocol_window_patch(gui_module: Any) -> None:
 
     def _clear_protocol_log(self) -> None:
         self.protocol_records.clear()
+        self.protocol_next_id = 0
         self._refresh_protocol_tree()
         if self.protocol_detail:
             self.protocol_detail.delete("1.0", tk.END)
@@ -180,6 +203,7 @@ def apply_protocol_window_patch(gui_module: Any) -> None:
     app_class._record_protocol = _record_protocol
     app_class._append_protocol_tree_record = _append_protocol_tree_record
     app_class._refresh_protocol_tree = _refresh_protocol_tree
+    app_class._record_for_selected_protocol = _record_for_selected_protocol
     app_class._show_protocol_detail = _show_protocol_detail
     app_class._copy_selected_protocol = _copy_selected_protocol
     app_class._clear_protocol_log = _clear_protocol_log
