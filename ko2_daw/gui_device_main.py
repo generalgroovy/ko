@@ -91,7 +91,7 @@ def apply_device_main_patch(gui_module: Any) -> None:
     ttk = gui_module.ttk
     original_init = app_class.__init__
     original_send_midi = app_class._send_midi
-    original_queue_midi_input = app_class._queue_midi_input
+    original_drain_input_queue = app_class._drain_input_queue
 
     def __init__(self, root):
         self.device_controls: dict[str, dict[str, object]] = {}
@@ -102,6 +102,7 @@ def apply_device_main_patch(gui_module: Any) -> None:
         self.device_last_control = "none"
         self.device_last_source = "app"
         self.device_current_step = 0
+        self.device_observed_input_count = 0
         original_init(self, root)
 
     def _build_mode_strip(self, parent) -> None:
@@ -416,9 +417,16 @@ def apply_device_main_patch(gui_module: Any) -> None:
             self._observe_device_message(message, "app")
         return result
 
-    def _queue_midi_input(self, message: MidiMessage) -> None:
-        self._observe_device_message(message, "device")
-        original_queue_midi_input(self, message)
+    def _drain_input_queue(self) -> None:
+        before = len(getattr(self.runtime_state, "recent_events", []))
+        original_drain_input_queue(self)
+        events = list(getattr(self.runtime_state, "recent_events", []))
+        for event in events[before:]:
+            message = getattr(event, "message", None)
+            if isinstance(message, str):
+                continue
+            if isinstance(message, MidiMessage):
+                self._observe_device_message(message, "device")
 
     def _observe_device_message(self, message: MidiMessage, source: str) -> None:
         if message.kind == "note_on" and message.note is not None and message.velocity:
@@ -614,7 +622,7 @@ def apply_device_main_patch(gui_module: Any) -> None:
     app_class._device_fader = _device_fader
     app_class._device_bpm = _device_bpm
     app_class._send_midi = _send_midi
-    app_class._queue_midi_input = _queue_midi_input
+    app_class._drain_input_queue = _drain_input_queue
     app_class._observe_device_message = _observe_device_message
     app_class._observe_device_cc = _observe_device_cc
     app_class._lane_pad_from_note = _lane_pad_from_note
