@@ -35,6 +35,7 @@ def _install_gui_extensions() -> None:
     from ko2_daw.gui_midi_detection import apply_midi_detection_patch
     from ko2_daw.gui_protocol_window import apply_protocol_window_patch
     from ko2_daw.gui_scrollbars import apply_hardware_scrollbar_patch
+    from ko2_daw.gui_state_poll import apply_state_poll_patch
     from ko2_daw.hardware_explorer import apply_hardware_explorer_patch
 
     apply_protocol_window_patch(gui)
@@ -46,6 +47,7 @@ def _install_gui_extensions() -> None:
     apply_file_explorer_window_patch(gui)
     apply_connection_guard_patch(gui)
     apply_device_main_patch(gui)
+    apply_state_poll_patch(gui)
 
 
 if __name__ == "__main__":
