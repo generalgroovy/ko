@@ -27,6 +27,7 @@ def _install_gui_extensions() -> None:
     """Install GUI extensions before creating the Tkinter window."""
 
     from ko2_daw import gui
+    from ko2_daw.gui_communication_panel import apply_communication_panel_patch
     from ko2_daw.gui_connection_guard import apply_connection_guard_patch
     from ko2_daw.gui_file_explorer_window import apply_file_explorer_window_patch
     from ko2_daw.gui_hardware_face import apply_hardware_face_patch
@@ -35,6 +36,7 @@ def _install_gui_extensions() -> None:
     from ko2_daw.hardware_explorer import apply_hardware_explorer_patch
 
     apply_protocol_window_patch(gui)
+    apply_communication_panel_patch(gui)
     apply_hardware_face_patch(gui)
     apply_hardware_explorer_patch(gui)
     apply_hardware_scrollbar_patch(gui)
