@@ -38,6 +38,7 @@ def _install_gui_extensions() -> None:
     from ko2_daw.gui_scrollbars import apply_hardware_scrollbar_patch
     from ko2_daw.gui_song_timeline import apply_song_timeline_patch
     from ko2_daw.gui_state_poll import apply_state_poll_patch
+    from ko2_daw.gui_visual_stability import apply_visual_stability_patch
     from ko2_daw.hardware_explorer import apply_hardware_explorer_patch
 
     apply_protocol_window_patch(gui)
@@ -52,6 +53,7 @@ def _install_gui_extensions() -> None:
     apply_song_timeline_patch(gui)
     apply_all_groups_matrix_patch(gui)
     apply_state_poll_patch(gui)
+    apply_visual_stability_patch(gui)
 
 
 if __name__ == "__main__":
