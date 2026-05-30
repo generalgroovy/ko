@@ -136,6 +136,7 @@ def apply_device_main_patch(gui_module: Any) -> None:
         )
         volume.set(96)
         volume.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+        self._register_control("volume", "VOLUME", "continuous")
 
         fader = tk.Scale(
             left,
@@ -156,7 +157,11 @@ def apply_device_main_patch(gui_module: Any) -> None:
 
         for index, key in enumerate(("shift", "keys", "sound", "edit")):
             row = 1 + index
-            button = self._make_button(left, MODE_CONTROLS[key].label, lambda name=key: self._device_mode_button(name))
+            button = self._make_button(
+                left,
+                MODE_CONTROLS[key].label,
+                lambda name=key: self._device_mode_button(name),
+            )
             button.grid(row=row, column=1, sticky="ew", pady=3)
             self.device_buttons[key] = button
             self._register_control(key, MODE_CONTROLS[key].label, MODE_CONTROLS[key].kind)
@@ -169,11 +174,16 @@ def apply_device_main_patch(gui_module: Any) -> None:
         for row in range(7):
             center.rowconfigure(row, weight=1)
 
-        top_modes = (("main", "commit"), ("tempo", "loop"), ("sample", "chop"), ("timing", "correct"))
+        top_modes = (
+            ("main", "commit"),
+            ("tempo", "loop"),
+            ("sample", "chop"),
+            ("timing", "correct"),
+        )
         for column, pair in enumerate(top_modes):
             stack = tk.Frame(center, bg=Palette.panel)
             stack.grid(row=0, column=column, sticky="nsew", padx=4, pady=(0, 8))
-            for row, key in enumerate(pair):
+            for _row, key in enumerate(pair):
                 control = MODE_CONTROLS[key]
                 button = self._make_button(
                     stack,
@@ -202,20 +212,21 @@ def apply_device_main_patch(gui_module: Any) -> None:
 
         transport = tk.Frame(center, bg=Palette.panel)
         transport.grid(row=5, column=0, columnspan=4, sticky="ew", pady=(8, 0))
-        transport.columnconfigure(0, weight=1)
-        transport.columnconfigure(1, weight=1)
-        transport.columnconfigure(2, weight=1)
-        transport.columnconfigure(3, weight=1)
-        for column, spec in enumerate(
-            (
-                ("record", "RECORD", self._record, Palette.orange),
-                ("play", "PLAY", self._start, Palette.green),
-                ("stop", "STOP", self._stop, Palette.soft),
-                ("panic", "PANIC", self._panic, Palette.dark),
+        for column in range(4):
+            transport.columnconfigure(column, weight=1)
+        transport_specs = (
+            ("record", "RECORD", self._record, Palette.orange),
+            ("play", "PLAY", self._start, Palette.green),
+            ("stop", "STOP", self._stop, Palette.soft),
+            ("panic", "PANIC", self._panic, Palette.dark),
+        )
+        for column, (key, label, command, color) in enumerate(transport_specs):
+            button = self._make_button(
+                transport,
+                label,
+                lambda name=key, cmd=command: self._device_transport(name, cmd),
+                bg=color,
             )
-        ):
-            key, label, command, color = spec
-            button = self._make_button(transport, label, lambda name=key, cmd=command: self._device_transport(name, cmd), bg=color)
             button.grid(row=0, column=column, sticky="ew", padx=4)
             self.device_buttons[key] = button
             self._register_control(key, label, "transport")
@@ -237,11 +248,23 @@ def apply_device_main_patch(gui_module: Any) -> None:
         right.columnconfigure(0, weight=1)
         right.columnconfigure(1, weight=1)
 
-        x_knob = self._make_slider(right, "X / GAIN", 0, 127, lambda value: self._device_cc("x", 16, value))
+        x_knob = self._make_slider(
+            right,
+            "X / GAIN",
+            0,
+            127,
+            lambda value: self._device_cc("x", 16, value),
+        )
         x_knob.grid(row=0, column=0, sticky="ew", padx=4, pady=(0, 8))
         self._register_control("x", "X", "knob")
 
-        y_knob = self._make_slider(right, "Y / SWING", 0, 127, lambda value: self._device_cc("y", 17, value))
+        y_knob = self._make_slider(
+            right,
+            "Y / SWING",
+            0,
+            127,
+            lambda value: self._device_cc("y", 17, value),
+        )
         y_knob.grid(row=0, column=1, sticky="ew", padx=4, pady=(0, 8))
         self._register_control("y", "Y", "knob")
 
@@ -252,28 +275,41 @@ def apply_device_main_patch(gui_module: Any) -> None:
 
         for index, key in enumerate(("fx", "output", "erase", "system"), start=2):
             control = MODE_CONTROLS[key]
-            button = self._make_button(right, control.label, lambda name=key: self._device_mode_button(name))
+            button = self._make_button(
+                right,
+                control.label,
+                lambda name=key: self._device_mode_button(name),
+            )
             button.grid(row=index, column=0, columnspan=2, sticky="ew", pady=3)
             self.device_buttons[key] = button
             self._register_control(key, control.label, control.kind)
 
         open_files = self._make_button(right, "DEVICE FILES", self._show_device_file_explorer, pale=True)
         open_files.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(12, 3))
+        self.device_buttons["device_files"] = open_files
         self._register_control("device_files", "DEVICE FILES", "window")
 
         protocol = self._make_button(right, "PROTOCOL", self._show_protocol_window, pale=True)
         protocol.grid(row=7, column=0, columnspan=2, sticky="ew", pady=3)
+        self.device_buttons["protocol"] = protocol
         self._register_control("protocol", "PROTOCOL", "window")
 
         connect = self._make_button(right, "CONNECT", self._connect_live, pale=True)
         connect.grid(row=8, column=0, sticky="ew", padx=(0, 3), pady=(12, 3))
         disconnect = self._make_button(right, "DISCONNECT", self._disconnect_live, pale=True)
         disconnect.grid(row=8, column=1, sticky="ew", padx=(3, 0), pady=(12, 3))
+        self.device_buttons["connect"] = connect
+        self.device_buttons["disconnect"] = disconnect
+        self._register_control("connect", "CONNECT", "window")
+        self._register_control("disconnect", "DISCONNECT", "window")
 
     def _build_workspace(self, parent) -> None:
         tabs = ttk.Notebook(parent)
         tabs.grid(row=3, column=0, columnspan=2, sticky="nsew", pady=(8, 0))
-        self._tip(tabs, "Main workspace: timeline, settings, and activity. Device files open only in their own window.")
+        self._tip(
+            tabs,
+            "Main workspace: timeline, settings, and activity. Device files open only in their own window.",
+        )
 
         timeline = tk.Frame(tabs, bg=Palette.body, padx=8, pady=8)
         settings = tk.Frame(tabs, bg=Palette.body, padx=6, pady=6)
@@ -291,11 +327,18 @@ def apply_device_main_patch(gui_module: Any) -> None:
 
     def _build_device_timeline(self, parent) -> None:
         parent.columnconfigure(1, weight=1)
-        parent.rowconfigure(0, weight=1)
+        for row in range(4):
+            parent.rowconfigure(row, weight=1)
         self.timeline_canvas = tk.Canvas(parent, height=150, bg="#050604", highlightthickness=0)
-        self.timeline_canvas.grid(row=0, column=1, sticky="nsew")
+        self.timeline_canvas.grid(row=0, column=1, rowspan=4, sticky="nsew")
         for index, lane in enumerate(LANES):
-            label = tk.Label(parent, text=lane, bg=Palette.body, fg=Palette.dark, font=("Consolas", 12, "bold"))
+            label = tk.Label(
+                parent,
+                text=lane,
+                bg=Palette.body,
+                fg=Palette.dark,
+                font=("Consolas", 12, "bold"),
+            )
             label.grid(row=index, column=0, sticky="ns", padx=(0, 6))
         self.timeline_info = tk.Label(parent, bg=Palette.body, fg=Palette.dark, anchor="w")
         self.timeline_info.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(6, 0))
@@ -327,7 +370,9 @@ def apply_device_main_patch(gui_module: Any) -> None:
             self.device_mode = key
         value = 127 if key != "shift" or self.device_shift else 0
         if control.midi_cc is not None:
-            self._send_midi(MidiMessage.control_change(control.midi_cc, value, channel=self.config.midi_channel))
+            self._send_midi(
+                MidiMessage.control_change(control.midi_cc, value, channel=self.config.midi_channel)
+            )
         self._mark_control(key, "app")
         self._set_action(f"device button {control.label}")
 
@@ -378,7 +423,7 @@ def apply_device_main_patch(gui_module: Any) -> None:
     def _observe_device_message(self, message: MidiMessage, source: str) -> None:
         if message.kind == "note_on" and message.note is not None and message.velocity:
             lane, pad = self._lane_pad_from_note(message.note)
-            if lane:
+            if lane and pad:
                 self.group.set(lane)
                 self._mark_current_step(lane)
                 self._mark_control(f"pad_{pad}", source)
@@ -395,7 +440,11 @@ def apply_device_main_patch(gui_module: Any) -> None:
             self._mark_control(message.kind, source)
 
     def _observe_device_cc(self, control: int, value: int, source: str) -> None:
-        cc_to_key = {control.midi_cc: key for key, control in MODE_CONTROLS.items() if control.midi_cc is not None}
+        cc_to_key = {
+            control_spec.midi_cc: key
+            for key, control_spec in MODE_CONTROLS.items()
+            if control_spec.midi_cc is not None
+        }
         if control in cc_to_key:
             key = cc_to_key[control]
             if key == "shift":
@@ -486,7 +535,7 @@ def apply_device_main_patch(gui_module: Any) -> None:
             self.timeline_info.configure(
                 text=(
                     f"A/B/C/D composition mirror | current step {current + 1}/{STEPS} | "
-                    f"source: app actions + observable incoming MIDI"
+                    "source: app actions + observable incoming MIDI"
                 )
             )
 
@@ -501,7 +550,11 @@ def apply_device_main_patch(gui_module: Any) -> None:
         pale: bool = False,
     ):
         background = bg or (Palette.orange if orange else Palette.pale_key if pale else Palette.key)
-        foreground = Palette.pale_text if background in {Palette.orange, Palette.pale_key, Palette.green, Palette.soft} else Palette.key_text
+        foreground = (
+            Palette.pale_text
+            if background in {Palette.orange, Palette.pale_key, Palette.green, Palette.soft}
+            else Palette.key_text
+        )
         return tk.Button(
             parent,
             text=label,
@@ -534,14 +587,14 @@ def apply_device_main_patch(gui_module: Any) -> None:
     def _set_button_active(self, button, active: bool) -> None:
         if active:
             button.configure(bg=Palette.green, fg=Palette.pale_text, relief="sunken")
+            return
+        text = str(button.cget("text"))
+        if text in {"A", "B", "C", "D", "DEVICE FILES", "PROTOCOL", "CONNECT", "DISCONNECT"}:
+            button.configure(bg=Palette.pale_key, fg=Palette.pale_text, relief="flat")
+        elif text in {"COMMIT", "SAMPLE", "RECORD"}:
+            button.configure(bg=Palette.orange, fg=Palette.pale_text, relief="flat")
         else:
-            text = str(button.cget("text"))
-            if text in {"A", "B", "C", "D", "DEVICE FILES", "PROTOCOL", "CONNECT", "DISCONNECT"}:
-                button.configure(bg=Palette.pale_key, fg=Palette.pale_text, relief="flat")
-            elif text in {"COMMIT", "SAMPLE", "RECORD"}:
-                button.configure(bg=Palette.orange, fg=Palette.pale_text, relief="flat")
-            else:
-                button.configure(bg=Palette.key, fg=Palette.key_text, relief="flat")
+            button.configure(bg=Palette.key, fg=Palette.key_text, relief="flat")
 
     app_class.__init__ = __init__
     app_class._build_mode_strip = _build_mode_strip
