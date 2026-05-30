@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import threading
 from typing import Any
 
 MAX_PROTOCOL_RECORDS = 2000
@@ -21,6 +22,7 @@ def apply_protocol_window_patch(gui_module: Any) -> None:
     original_build_menu = app_class._build_menu
     original_send_midi = app_class._send_midi
     original_queue_midi_input = app_class._queue_midi_input
+    original_drain_input_queue = app_class._drain_input_queue
     original_run_sysex_probe = app_class._run_sysex_probe
 
     def __init__(self, root):
@@ -29,6 +31,8 @@ def apply_protocol_window_patch(gui_module: Any) -> None:
         self.protocol_tree = None
         self.protocol_detail = None
         self.protocol_next_id = 0
+        self.protocol_pending_input: list[Any] = []
+        self.protocol_pending_lock = threading.Lock()
         original_init(self, root)
 
     def _build_menu(self) -> None:
@@ -176,6 +180,8 @@ def apply_protocol_window_patch(gui_module: Any) -> None:
     def _clear_protocol_log(self) -> None:
         self.protocol_records.clear()
         self.protocol_next_id = 0
+        with self.protocol_pending_lock:
+            self.protocol_pending_input.clear()
         self._refresh_protocol_tree()
         if self.protocol_detail:
             self.protocol_detail.delete("1.0", tk.END)
@@ -190,8 +196,18 @@ def apply_protocol_window_patch(gui_module: Any) -> None:
         return result
 
     def _queue_midi_input(self, message) -> None:
-        self._record_protocol("device -> app", message.kind, message.display(), _message_raw(message))
+        with self.protocol_pending_lock:
+            self.protocol_pending_input.append(message)
+            self.protocol_pending_input[:] = self.protocol_pending_input[-MAX_PROTOCOL_RECORDS:]
         original_queue_midi_input(self, message)
+
+    def _drain_input_queue(self) -> None:
+        with self.protocol_pending_lock:
+            pending = list(self.protocol_pending_input)
+            self.protocol_pending_input.clear()
+        for message in pending:
+            self._record_protocol("device -> app", message.kind, message.display(), _message_raw(message))
+        original_drain_input_queue(self)
 
     def _run_sysex_probe(self, name: str, frame: bytes) -> None:
         self._record_protocol("app", "probe", name, frame.hex(" "))
@@ -209,6 +225,7 @@ def apply_protocol_window_patch(gui_module: Any) -> None:
     app_class._clear_protocol_log = _clear_protocol_log
     app_class._send_midi = _send_midi
     app_class._queue_midi_input = _queue_midi_input
+    app_class._drain_input_queue = _drain_input_queue
     app_class._run_sysex_probe = _run_sysex_probe
     app_class._protocol_window_patch_installed = True
 
