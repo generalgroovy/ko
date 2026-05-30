@@ -2,7 +2,35 @@
 
 Safe Python MIDI controller experiments for a KO II-style sampler.
 
-## Run
+## Easiest Run On Windows
+
+Double-click:
+
+```powershell
+KO2-DAW.bat
+```
+
+That launcher creates a local `.venv`, installs the project in editable mode, and opens the desktop GUI. It is the recommended source-tree launcher when you have Python installed.
+
+## Build A Windows Executable
+
+Double-click or run:
+
+```powershell
+build_exe.bat
+```
+
+The built app appears at:
+
+```text
+dist\KO2-DAW\KO2-DAW.exe
+```
+
+You can copy the whole `dist\KO2-DAW` folder to another Windows machine. Keep the folder together; the `.exe` depends on the files beside it.
+
+GitHub Actions also builds a downloadable Windows artifact named `KO2-DAW-windows` from `.github/workflows/build-windows-exe.yml`. Open the latest workflow run and download the artifact when the build completes.
+
+## Run From Python
 
 From this folder:
 
@@ -13,7 +41,13 @@ python run_ko2_daw.py
 or:
 
 ```powershell
-ko2-daw.cmd
+python -m ko2_daw
+```
+
+or, after install:
+
+```powershell
+ko2-daw
 ```
 
 The default launch opens a KO II-style desktop control surface. It starts in dry-run mode. Use **CONNECT EP-133** in the GUI to switch the pads, transport, CC fader, and read-only hardware probes to the direct USB-C `EP-133` MIDI route.
@@ -53,16 +87,14 @@ Live MIDI is intentionally opt-in:
 python run_ko2_daw.py --live --midi-backend winmm --ko2-route auto --note 36
 ```
 
-Live mode requires both a visible output port and an allow-list match. On Windows, the app can use native WinMM for short MIDI messages and read-only SysEx without `python-rtmidi`. Write-capable SysEx operations remain blocked.
+Live mode requires both a visible output port and an allow-list match. On Windows, the app can use native WinMM for short MIDI messages and read-only SysEx without `python-rtmidi`. Write-capable SysEx operations remain blocked unless explicitly armed through the GUI communication profile.
 
 Current USB/MIDI distinction:
 
 - If `ko2_usb_connected` is `True`, Windows can see the EP-133 over USB.
 - If `ko2_midi_ready` is `False`, Windows has not exposed the EP-133 as a MIDI input/output port, so this MIDI app cannot send directly to it yet.
 - `--usb-diagnose` prints the exact USB classes. Direct USB MIDI normally requires a MIDI streaming interface, not only USB Audio Control.
-- `--ko2-route auto` resolves the best available route. With the current direct USB-C connection it selects `EP-133`.
-- Current verified direct USB-C state: `ko2_usb_connected=True`, `ko2_midi_ready=True`, input `EP-133`, output `EP-133`.
-- Verified read-only SysEx: identity returns `TE032AS001`; file init returns a 512-byte chunk size; root list returns `sounds` node `1000` and `projects` node `2000`.
+- `--ko2-route auto` resolves the best available route. With a direct USB-C MIDI connection it selects `EP-133`.
 - Run `python run_ko2_daw.py --list` after changing cable, USB mode, firmware, or drivers.
 
 State monitoring:
@@ -81,6 +113,7 @@ Companion sessions:
 Double-click or run:
 
 ```powershell
+KO2-DAW.bat
 ko2-daw.cmd
 launch_ko2_daw.cmd
 test_ko2_daw.cmd
@@ -88,20 +121,15 @@ test_ko2_daw.cmd
 
 The visual layout mirrors the physical workflow at a practical level: LCD-style status display, group buttons A-D, 12 sample pads using the EP-133 note ranges, mode keys, transport controls, mod-wheel fader, X/Y controls, MIDI status, inferred state, diagnostics, session save, and a scrolling activity log.
 
-The lower workspace adds companion-software workflows inspired by the KO II Web MIDI lab and EP Sample Tool:
-
-- **Samples**: import local WAV files into a 999-slot table, preview them locally, trigger the matching MIDI pad, and save a JSON manifest.
-- **Hardware Files**: connect live, automatically load the complete device file tree, refresh selected nodes, preview selected sound/track file rows on the EP-133 with **PLAY FILE** / **STOP FILE**, run a full scan again, and export the cached hardware view.
-- **Settings**: configure startup auto-connect, route selection, manual MIDI ports, read-only/read-playback/expert-write policy, SysEx enablement, playback confirmation, auto-scan, timeout, frame size, and recursive scan limits. Settings persist to `daw_projects\app_settings.json`.
-- **Log**: inspect MIDI/SysEx activity without leaving the control surface.
+The main window is now primarily a device view plus Settings, Timeline, and Log. Device files open in their own compact explorer window. The all-groups matrix shows A-D simultaneously and lights active incoming notes as visible button presses.
 
 Usability aids:
 
 - Hover over controls for tooltips explaining what each interaction does.
-- Use **Help > Interaction Guide** for a complete walkthrough of the control surface.
-- Use **Help > MIDI And Safety** for live-mode and read-only SysEx safety notes.
+- Use **Protocol Monitor** for app/device traffic.
+- Use **Communication Panel** for connection/profile/access settings.
+- Use **MIDI Detect** for EP-133 port diagnostics.
 - Use **Configuration > Save Settings** to persist app-level connection and access policy choices.
-- The layout uses compact insets and gives remaining space to the pad surface and lower workspace tables.
 
 The current probe summary is saved in `docs\ko2_device_interaction_capabilities.txt`.
 
@@ -117,7 +145,7 @@ This project ports the safe protocol primitives from `generalgroovy/ko2` branch 
 - Read-only file protocol payloads for init, list, info, and metadata get.
 - Explicit file playback start/stop payload for selected hardware rows.
 - File list and JSON metadata response parsers.
-- Write-capable file operations blocked by default; expert-write mode can arm low-level frame construction only after typing `WRITE`, and destructive write buttons are still not exposed.
+- Write-capable file operations blocked by default; expert-write/full-lab profiles can arm low-level frame construction only after typing `WRITE`, and destructive write buttons are still not exposed.
 
 The app can generate, send, receive, and parse identity/file probes over the direct USB-C `EP-133` MIDI route. Hardware browsing remains read-only unless the app is configured for selected-file playback preview. It does not expose upload, delete, move, restore, or metadata-write buttons.
 
@@ -132,7 +160,5 @@ python -m pip install mido python-rtmidi
 ## Test
 
 ```powershell
-python -m unittest discover -s tests
+python -m pytest
 ```
-
-Current verified test result: 37 tests pass.
