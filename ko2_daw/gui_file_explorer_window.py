@@ -25,7 +25,10 @@ def apply_file_explorer_window_patch(gui_module: Any) -> None:
         menu = self.root.nametowidget(self.root.cget("menu"))
         files = tk.Menu(menu, tearoff=False)
         files.add_command(label="Open Compact Device Explorer", command=self._show_device_file_explorer)
-        files.add_command(label="Scan Device Files", command=lambda: self._scan_complete_device_tree(auto=False))
+        files.add_command(
+            label="Scan Device Files",
+            command=lambda: self._scan_complete_device_tree(auto=False),
+        )
         menu.add_cascade(label="Device Files", menu=files)
 
     def _show_device_file_explorer(self) -> None:
@@ -47,7 +50,10 @@ def apply_file_explorer_window_patch(gui_module: Any) -> None:
             ("PLAY", self._play_selected_device_file),
             ("STOP", self._stop_selected_device_file),
         ):
-            tk.Button(toolbar, text=label, command=command, padx=8, pady=3).pack(side=tk.LEFT, padx=2)
+            tk.Button(toolbar, text=label, command=command, padx=8, pady=3).pack(
+                side=tk.LEFT,
+                padx=2,
+            )
         tk.Label(toolbar, textvariable=self.hardware_status, bg="#11120f", fg="#d7f58a").pack(
             side=tk.RIGHT,
         )
@@ -110,7 +116,14 @@ def apply_file_explorer_window_patch(gui_module: Any) -> None:
             kind = values[1] if len(values) > 1 else ""
             node = values[0] if len(values) > 0 else ""
             size = values[2] if len(values) > 2 else ""
-            tree.insert(target_parent, tk.END, iid=source_item, text=text, values=(kind, node, size), open=True)
+            tree.insert(
+                target_parent,
+                tk.END,
+                iid=source_item,
+                text=text,
+                values=(kind, node, size),
+                open=True,
+            )
             for child in self.hardware_tree.get_children(source_item):
                 copy_node(child, source_item)
 
