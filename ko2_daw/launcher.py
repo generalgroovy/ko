@@ -27,6 +27,7 @@ def _install_gui_extensions() -> None:
     """Install GUI extensions before creating the Tkinter window."""
 
     from ko2_daw import gui
+    from ko2_daw.gui_all_groups_matrix import apply_all_groups_matrix_patch
     from ko2_daw.gui_comm_panel import apply_comm_panel_patch
     from ko2_daw.gui_connection_guard import apply_connection_guard_patch
     from ko2_daw.gui_detection_menu import apply_detection_menu_patch
@@ -49,6 +50,7 @@ def _install_gui_extensions() -> None:
     apply_connection_guard_patch(gui)
     apply_device_main_patch(gui)
     apply_song_timeline_patch(gui)
+    apply_all_groups_matrix_patch(gui)
     apply_state_poll_patch(gui)
 
 
