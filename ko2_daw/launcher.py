@@ -36,6 +36,7 @@ def _install_gui_extensions() -> None:
     from ko2_daw.gui_midi_detection import apply_midi_detection_patch
     from ko2_daw.gui_protocol_window import apply_protocol_window_patch
     from ko2_daw.gui_scrollbars import apply_hardware_scrollbar_patch
+    from ko2_daw.gui_segment_grid import apply_segment_grid_patch
     from ko2_daw.gui_song_timeline import apply_song_timeline_patch
     from ko2_daw.gui_state_poll import apply_state_poll_patch
     from ko2_daw.gui_visual_stability import apply_visual_stability_patch
@@ -51,6 +52,7 @@ def _install_gui_extensions() -> None:
     apply_connection_guard_patch(gui)
     apply_device_main_patch(gui)
     apply_song_timeline_patch(gui)
+    apply_segment_grid_patch(gui)
     apply_all_groups_matrix_patch(gui)
     apply_state_poll_patch(gui)
     apply_visual_stability_patch(gui)
