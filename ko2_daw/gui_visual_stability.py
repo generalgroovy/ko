@@ -1,9 +1,4 @@
-"""Visual stability helpers for the KO II GUI.
-
-The GUI uses several extension patches. This module prevents generic device
-refresh logic from repainting all-groups matrix buttons that are owned by the
-matrix renderer. That removes visible flicker caused by competing timers.
-"""
+"""Final GUI stabilization and layout activation for the KO II GUI."""
 
 from __future__ import annotations
 
@@ -11,7 +6,11 @@ from typing import Any
 
 
 def apply_visual_stability_patch(gui_module: Any) -> None:
-    """Mark matrix widgets as matrix-owned and isolate their rendering."""
+    """Stabilize rendering and activate the final device-surface layout."""
+
+    from ko2_daw.gui_photo_layout import apply_photo_layout_patch
+
+    apply_photo_layout_patch(gui_module)
 
     app_class = gui_module.KO2DawApp
     if getattr(app_class, "_visual_stability_patch_installed", False):
@@ -44,6 +43,8 @@ def apply_visual_stability_patch(gui_module: Any) -> None:
             original_refresh_device_view(self)
         if hasattr(self, "_refresh_group_matrix"):
             self._refresh_group_matrix()
+        if hasattr(self, "_photo_refresh"):
+            self._photo_refresh()
 
     def _group_matrix_pad(self, group: str, pad_index: int) -> None:
         if original_group_matrix_pad is None:
