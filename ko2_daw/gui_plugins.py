@@ -1,14 +1,16 @@
 """Declarative GUI plugin registry.
 
-The GUI still uses patch-style extension functions for now, but their install
-order is centralized and testable here instead of being hand-coded in the
-launcher.
+The default GUI mode is intentionally conservative. Earlier experimental
+surface patches are still available through KO2_DAW_GUI_MODE=experimental,
+but the normal launcher installs only the stable extensions required for a
+reliable desktop app.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from importlib import import_module
+import os
 from typing import Any
 
 
@@ -20,6 +22,7 @@ class GuiPlugin:
     module: str
     function: str
     order: int
+    experimental: bool = False
 
     def install(self, gui_module: Any) -> None:
         module = import_module(self.module)
@@ -36,19 +39,38 @@ GUI_PLUGINS: tuple[GuiPlugin, ...] = (
     GuiPlugin("scrollbars", "ko2_daw.gui_scrollbars", "apply_hardware_scrollbar_patch", 60),
     GuiPlugin("file-explorer-window", "ko2_daw.gui_file_explorer_window", "apply_file_explorer_window_patch", 70),
     GuiPlugin("connection-guard", "ko2_daw.gui_connection_guard", "apply_connection_guard_patch", 80),
-    GuiPlugin("device-main", "ko2_daw.gui_device_main", "apply_device_main_patch", 90),
-    GuiPlugin("song-timeline", "ko2_daw.gui_song_timeline", "apply_song_timeline_patch", 100),
-    GuiPlugin("segment-grid", "ko2_daw.gui_segment_grid", "apply_segment_grid_patch", 110),
-    GuiPlugin("all-groups-matrix", "ko2_daw.gui_all_groups_matrix", "apply_all_groups_matrix_patch", 120),
-    GuiPlugin("state-poll", "ko2_daw.gui_state_poll", "apply_state_poll_patch", 130),
-    GuiPlugin("visual-stability", "ko2_daw.gui_visual_stability", "apply_visual_stability_patch", 1000),
+    GuiPlugin("state-poll", "ko2_daw.gui_state_poll", "apply_state_poll_patch", 90),
+    GuiPlugin("device-main", "ko2_daw.gui_device_main", "apply_device_main_patch", 200, True),
+    GuiPlugin("song-timeline", "ko2_daw.gui_song_timeline", "apply_song_timeline_patch", 210, True),
+    GuiPlugin("segment-grid", "ko2_daw.gui_segment_grid", "apply_segment_grid_patch", 220, True),
+    GuiPlugin("all-groups-matrix", "ko2_daw.gui_all_groups_matrix", "apply_all_groups_matrix_patch", 230, True),
+    GuiPlugin("visual-stability", "ko2_daw.gui_visual_stability", "apply_visual_stability_patch", 1000, True),
 )
 
 
-def ordered_plugins() -> tuple[GuiPlugin, ...]:
+def gui_mode() -> str:
+    """Return the requested GUI mode.
+
+    Supported values:
+    - stable: protocol, MIDI detection, communication panel, explorer, state polling.
+    - experimental: stable plus photo/device/timeline/matrix patches.
+    """
+
+    value = os.environ.get("KO2_DAW_GUI_MODE", "stable").strip().lower()
+    return value if value in {"stable", "experimental"} else "stable"
+
+
+def ordered_plugins(*, include_experimental: bool | None = None) -> tuple[GuiPlugin, ...]:
     """Return plugins in deterministic installation order."""
 
-    return tuple(sorted(GUI_PLUGINS, key=lambda plugin: (plugin.order, plugin.name)))
+    if include_experimental is None:
+        include_experimental = gui_mode() == "experimental"
+    plugins = [
+        plugin
+        for plugin in GUI_PLUGINS
+        if include_experimental or not plugin.experimental
+    ]
+    return tuple(sorted(plugins, key=lambda plugin: (plugin.order, plugin.name)))
 
 
 def install_gui_plugins(gui_module: Any) -> None:
