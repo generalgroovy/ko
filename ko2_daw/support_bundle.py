@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 from datetime import datetime
 from pathlib import Path
@@ -30,7 +31,8 @@ def create_support_bundle(
     report = midi_capability_report()
     settings = load_app_settings(settings_path)
     try:
-        route = resolve_ko2_route(report, settings.preferred_route if settings.preferred_route != "manual" else "auto")
+        preferred = settings.preferred_route if settings.preferred_route != "manual" else "auto"
+        route = resolve_ko2_route(report, preferred)
         route_payload = route.__dict__
     except Exception as exc:  # defensive: support bundle should not fail on route errors
         route_payload = {"error": str(exc)}
@@ -64,3 +66,26 @@ def create_support_bundle(
                 archive.write(path, f"files/{path.as_posix()}")
 
     return bundle_path.resolve()
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Create a KO II DAW support bundle.")
+    parser.add_argument("--output-dir", default="daw_projects")
+    parser.add_argument("--settings", default="ko2_app_settings.json")
+    parser.add_argument("--project-root", default="daw_projects")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    path = create_support_bundle(
+        args.output_dir,
+        settings_path=args.settings,
+        project_root=args.project_root,
+    )
+    print(f"support_bundle={path}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
