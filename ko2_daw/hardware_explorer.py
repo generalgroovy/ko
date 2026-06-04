@@ -10,6 +10,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from ko2_daw.io_utils import atomic_write_text
+
 
 def apply_hardware_explorer_patch(gui_module: Any) -> None:
     """Patch KO2DawApp hardware file methods with explorer-style behavior."""
@@ -208,7 +210,7 @@ def apply_hardware_explorer_patch(gui_module: Any) -> None:
         path = self.project_root / "hardware_file_cache.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         payload = json.dumps({"rows": rows}, indent=2, sort_keys=True) + "\n"
-        path.write_text(payload, encoding="utf-8")
+        atomic_write_text(path, payload)
         self._set_action(f"exported {path.name}")
         messagebox.showinfo("KO II Hardware Files", f"Exported hardware cache:\n{path}")
 
