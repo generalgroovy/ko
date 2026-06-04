@@ -79,6 +79,7 @@ python run_ko2_daw.py --live --ko2-route usb-midi --sysex-probe root-list --syse
 python run_ko2_daw.py --capability-scan --capability-report-txt docs\ko2_device_interaction_capabilities.txt
 python run_ko2_daw.py --capability-scan --capability-scan-live-actions --capability-report-txt docs\ko2_device_interaction_capabilities.txt
 python run_ko2_daw.py --note 60 --save-project ko2_session.json
+python -m ko2_daw.support_bundle
 ```
 
 Live MIDI is intentionally opt-in:
@@ -89,7 +90,25 @@ python run_ko2_daw.py --live --midi-backend winmm --ko2-route auto --note 36
 
 Live mode requires both a visible output port and an allow-list match. On Windows, the app can use native WinMM for short MIDI messages and read-only SysEx without `python-rtmidi`. Write-capable SysEx operations remain blocked unless explicitly armed through the GUI communication profile.
 
-Current USB/MIDI distinction:
+## Support Bundles And Replayable Logs
+
+Create a timestamped diagnostic ZIP:
+
+```powershell
+support_bundle.bat
+```
+
+or:
+
+```powershell
+python -m ko2_daw.support_bundle
+```
+
+The support bundle includes non-destructive diagnostics: MIDI report, readiness report, route decision, settings, Python/platform manifest, and optional local cache/state/capability files when present.
+
+Protocol sessions can be serialized with `ko2_daw.protocol_recorder.ProtocolRecorder` and replayed with `ProtocolReplay`. This is intended for hardware-free regression tests of GUI/state parsing once a live session has been captured.
+
+## Current USB/MIDI Distinction
 
 - If `ko2_usb_connected` is `True`, Windows can see the EP-133 over USB.
 - If `ko2_midi_ready` is `False`, Windows has not exposed the EP-133 as a MIDI input/output port, so this MIDI app cannot send directly to it yet.
@@ -97,12 +116,13 @@ Current USB/MIDI distinction:
 - `--ko2-route auto` resolves the best available route. With a direct USB-C MIDI connection it selects `EP-133`.
 - Run `python run_ko2_daw.py --list` after changing cable, USB mode, firmware, or drivers.
 
-State monitoring:
+## State Monitoring
 
 - The app can infer transport, clock, active notes, program changes, bank select, mod wheel, and observed controllers from incoming MIDI.
 - The public EP-133 MIDI implementation does not provide a full query/dump for current project, sample names, selected effect, or complete front-panel state. Those fields are shown as unknown unless MIDI traffic exposes them.
+- The segment grid models A1-A99, B1-B99, C1-C99, and D1-D99 as occupied, empty, selected, or unknown. Occupancy is derived from device file-tree metadata, parseable names, app actions, and incoming MIDI evidence.
 
-Companion sessions:
+## Companion Sessions
 
 - `--init-session companion_session.json` creates a professional session file with the EP-133 profile, 48 pad assignments, routing placeholders, supported MIDI controls, and unsupported state-query notes.
 - The GUI `SAVE SESSION` button writes `daw_projects\companion_session.json`.
@@ -114,6 +134,7 @@ Double-click or run:
 
 ```powershell
 KO2-DAW.bat
+support_bundle.bat
 ko2-daw.cmd
 launch_ko2_daw.cmd
 test_ko2_daw.cmd
@@ -121,7 +142,7 @@ test_ko2_daw.cmd
 
 The visual layout mirrors the physical workflow at a practical level: LCD-style status display, group buttons A-D, 12 sample pads using the EP-133 note ranges, mode keys, transport controls, mod-wheel fader, X/Y controls, MIDI status, inferred state, diagnostics, session save, and a scrolling activity log.
 
-The main window is now primarily a device view plus Settings, Timeline, and Log. Device files open in their own compact explorer window. The all-groups matrix shows A-D simultaneously and lights active incoming notes as visible button presses.
+The main window is now primarily a device view plus Settings, Timeline, Log, and A-D x 99 Segments. Device files open in their own compact explorer window. The all-groups matrix shows A-D simultaneously and lights active incoming notes as visible button presses.
 
 Usability aids:
 
@@ -149,6 +170,10 @@ This project ports the safe protocol primitives from `generalgroovy/ko2` branch 
 
 The app can generate, send, receive, and parse identity/file probes over the direct USB-C `EP-133` MIDI route. Hardware browsing remains read-only unless the app is configured for selected-file playback preview. It does not expose upload, delete, move, restore, or metadata-write buttons.
 
+## Development Architecture
+
+GUI extensions are currently installed by a declarative plugin registry in `ko2_daw.gui_plugins`. The registry preserves the existing patch-based implementation but centralizes ordering and makes the stack testable. A future larger refactor can convert those plugins into explicit composed services/classes without changing launch behavior first.
+
 ## Optional Install
 
 The app has no required third-party dependency for dry-run use or native Windows WinMM short MIDI output. For the optional mido backend:
@@ -161,4 +186,5 @@ python -m pip install mido python-rtmidi
 
 ```powershell
 python -m pytest
+python -m pytest tests/test_protocol_recorder.py tests/test_support_bundle.py tests/test_gui_plugins.py
 ```
