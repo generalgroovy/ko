@@ -6,7 +6,8 @@ on:
     branches: [main]
     paths:
       - 'ko2_daw/**'
-      - 'packaging/**'
+      - 'ko2_daw.spec'
+      - 'ko2_daw_runtime.py'
       - 'pyproject.toml'
       - 'build_exe.bat'
       - '.github/workflows/build-windows-exe.yml'
@@ -33,7 +34,7 @@ jobs:
         run: python -m pytest
 
       - name: Build executable
-        run: python -m PyInstaller packaging\ko2_daw.spec --clean --noconfirm
+        run: python -m PyInstaller ko2_daw.spec --clean --noconfirm
 
       - name: Upload executable folder
         uses: actions/upload-artifact@v4
