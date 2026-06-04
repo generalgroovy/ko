@@ -15,7 +15,7 @@ if errorlevel 1 goto :error
 
 rmdir /s /q build 2>nul
 rmdir /s /q dist 2>nul
-".venv\Scripts\python.exe" -m PyInstaller packaging\ko2_daw.spec --clean --noconfirm
+".venv\Scripts\python.exe" -m PyInstaller ko2_daw.spec --clean --noconfirm
 if errorlevel 1 goto :error
 
 echo.
