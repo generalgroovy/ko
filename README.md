@@ -4,13 +4,37 @@ Safe Python MIDI controller experiments for a KO II-style sampler.
 
 ## Easiest Run On Windows
 
-Double-click:
+Double-click the stable launcher first:
+
+```powershell
+KO2-DAW-STABLE.bat
+```
+
+Stable mode is now the default. It installs and opens the conservative GUI stack: protocol monitor, MIDI detection, communication panel, hardware file explorer, connection guard, and state polling. This is the recommended path when the experimental device-surface layout is not working.
+
+The normal launcher also uses stable mode unless you explicitly opt into experimental mode:
 
 ```powershell
 KO2-DAW.bat
 ```
 
-That launcher creates a local `.venv`, installs the project in editable mode, and opens the desktop GUI. It is the recommended source-tree launcher when you have Python installed.
+## Experimental GUI Mode
+
+The photo/device/timeline/matrix/segment-grid surface is preserved but opt-in:
+
+```powershell
+$env:KO2_DAW_GUI_MODE = "experimental"
+python -m ko2_daw
+```
+
+or in CMD:
+
+```cmd
+set KO2_DAW_GUI_MODE=experimental
+python -m ko2_daw
+```
+
+Use experimental mode only after stable mode launches correctly.
 
 ## Build A Windows Executable
 
@@ -50,7 +74,7 @@ or, after install:
 ko2-daw
 ```
 
-The default launch opens a KO II-style desktop control surface. It starts in dry-run mode. Use **CONNECT EP-133** in the GUI to switch the pads, transport, CC fader, and read-only hardware probes to the direct USB-C `EP-133` MIDI route.
+The default launch opens a stable KO II desktop control app. It starts in dry-run mode. Use **CONNECT EP-133** in the GUI to switch the pads, transport, CC fader, and read-only hardware probes to the direct USB-C `EP-133` MIDI route.
 
 For text-only startup status:
 
@@ -120,7 +144,7 @@ Protocol sessions can be serialized with `ko2_daw.protocol_recorder.ProtocolReco
 
 - The app can infer transport, clock, active notes, program changes, bank select, mod wheel, and observed controllers from incoming MIDI.
 - The public EP-133 MIDI implementation does not provide a full query/dump for current project, sample names, selected effect, or complete front-panel state. Those fields are shown as unknown unless MIDI traffic exposes them.
-- The segment grid models A1-A99, B1-B99, C1-C99, and D1-D99 as occupied, empty, selected, or unknown. Occupancy is derived from device file-tree metadata, parseable names, app actions, and incoming MIDI evidence.
+- In experimental mode, the segment grid models A1-A99, B1-B99, C1-C99, and D1-D99 as occupied, empty, selected, or unknown.
 
 ## Companion Sessions
 
@@ -133,16 +157,13 @@ Protocol sessions can be serialized with `ko2_daw.protocol_recorder.ProtocolReco
 Double-click or run:
 
 ```powershell
+KO2-DAW-STABLE.bat
 KO2-DAW.bat
 support_bundle.bat
 ko2-daw.cmd
 launch_ko2_daw.cmd
 test_ko2_daw.cmd
 ```
-
-The visual layout mirrors the physical workflow at a practical level: LCD-style status display, group buttons A-D, 12 sample pads using the EP-133 note ranges, mode keys, transport controls, mod-wheel fader, X/Y controls, MIDI status, inferred state, diagnostics, session save, and a scrolling activity log.
-
-The main window is now primarily a device view plus Settings, Timeline, Log, and A-D x 99 Segments. Device files open in their own compact explorer window. The all-groups matrix shows A-D simultaneously and lights active incoming notes as visible button presses.
 
 Usability aids:
 
@@ -172,7 +193,7 @@ The app can generate, send, receive, and parse identity/file probes over the dir
 
 ## Development Architecture
 
-GUI extensions are currently installed by a declarative plugin registry in `ko2_daw.gui_plugins`. The registry preserves the existing patch-based implementation but centralizes ordering and makes the stack testable. A future larger refactor can convert those plugins into explicit composed services/classes without changing launch behavior first.
+GUI extensions are installed by a declarative plugin registry in `ko2_daw.gui_plugins`. Stable mode installs only conservative extensions. Experimental mode enables the unstable custom hardware surface work for further iteration.
 
 ## Optional Install
 
@@ -186,5 +207,5 @@ python -m pip install mido python-rtmidi
 
 ```powershell
 python -m pytest
-python -m pytest tests/test_protocol_recorder.py tests/test_support_bundle.py tests/test_gui_plugins.py
+python -m pytest tests/test_protocol_recorder.py tests/test_support_bundle.py tests/test_gui_plugins.py tests/test_stable_imports.py
 ```
