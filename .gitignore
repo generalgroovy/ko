@@ -1,0 +1,40 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Build and package output
+build/
+dist/
+*.egg-info/
+*.spec.bak
+
+# Local runtime state
+ko2_app_settings.json
+ko2_state.json
+hardware_file_cache.json
+protocol_*.jsonl
+support_bundle_*.zip
+
+# Project runtime/export folders
+/daw_projects/*.json
+/daw_projects/*.jsonl
+/daw_projects/*.zip
+!/daw_projects/.gitkeep
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
