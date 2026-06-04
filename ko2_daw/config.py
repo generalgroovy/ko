@@ -63,6 +63,7 @@ class AppSettings:
     sysex_enabled: bool = True
     auto_scan_on_connect: bool = True
     allow_file_playback: bool = True
+    require_playback_confirmation: bool = False
     sysex_timeout_sec: float = 2.0
     max_sysex_bytes: int = 4 * 1024 * 1024
     scan_pages_per_dir: int = 32
@@ -108,6 +109,7 @@ class AppSettings:
             "sysex_enabled": self.sysex_enabled,
             "auto_scan_on_connect": self.auto_scan_on_connect,
             "allow_file_playback": self.allow_file_playback,
+            "require_playback_confirmation": self.require_playback_confirmation,
             "sysex_timeout_sec": self.sysex_timeout_sec,
             "max_sysex_bytes": self.max_sysex_bytes,
             "scan_pages_per_dir": self.scan_pages_per_dir,
@@ -128,6 +130,9 @@ class AppSettings:
             sysex_enabled=bool(data.get("sysex_enabled", defaults.sysex_enabled)),
             auto_scan_on_connect=bool(data.get("auto_scan_on_connect", defaults.auto_scan_on_connect)),
             allow_file_playback=bool(data.get("allow_file_playback", defaults.allow_file_playback)),
+            require_playback_confirmation=bool(
+                data.get("require_playback_confirmation", defaults.require_playback_confirmation)
+            ),
             sysex_timeout_sec=float(data.get("sysex_timeout_sec", defaults.sysex_timeout_sec)),
             max_sysex_bytes=int(data.get("max_sysex_bytes", defaults.max_sysex_bytes)),
             scan_pages_per_dir=int(data.get("scan_pages_per_dir", defaults.scan_pages_per_dir)),
