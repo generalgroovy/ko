@@ -152,8 +152,16 @@ class MidoMidiBackend:
     """Hardware MIDI backend using mido when available."""
 
     def __init__(self):
-        if importlib.util.find_spec("mido") is None:
-            raise RuntimeError("Install mido and python-rtmidi to use live MIDI.")
+        missing = [
+            package
+            for package in ("mido", "rtmidi")
+            if importlib.util.find_spec(package) is None
+        ]
+        if missing:
+            raise RuntimeError(
+                "Install mido and python-rtmidi to use the mido live MIDI backend "
+                f"(missing: {', '.join(missing)})."
+            )
         import mido
 
         self._mido = mido

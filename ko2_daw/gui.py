@@ -18,7 +18,11 @@ from ko2_daw.routing import KO2Route, resolve_ko2_route
 from ko2_daw.samples import MAX_SAMPLE_SLOTS, SampleLibrary, play_wav, stop_wav
 from ko2_daw.session import CompanionSessionStore, default_session
 from ko2_daw.state import KO2RuntimeState
-from ko2_daw.sysex_exchange import SysexDecodedResponse, decode_sysex_response
+from ko2_daw.sysex_exchange import (
+    SysexDecodedResponse,
+    decode_sysex_response,
+    matching_sysex_responses,
+)
 from ko2_daw.te_sysex import (
     TEFileCommand,
     build_file_init_payload,
@@ -121,6 +125,7 @@ class KO2DawApp:
         self.live_input_port: str | None = None
         self.live_output_port: str | None = None
         self._sysex_lock = threading.Lock()
+        self._sysex_transaction_lock = threading.Lock()
         self._sysex_event = threading.Event()
         self._sysex_responses: list[bytes] = []
         self._hardware_scan_lock = threading.Lock()
@@ -452,6 +457,7 @@ class KO2DawApp:
 
     def _build_workspace(self, parent: tk.Frame) -> None:
         tabs = ttk.Notebook(parent)
+        self.workspace_tabs = tabs
         tabs.grid(row=3, column=0, columnspan=2, sticky="nsew", pady=(8, 0))
         self._tip(tabs, "Lower workspace. Use Samples for local audio, Hardware Files for EP-133 browsing/playback, Settings for access policy, and Log for activity.")
 
@@ -1192,10 +1198,12 @@ class KO2DawApp:
 
         def worker() -> None:
             try:
-                self.controller.send(MidiMessage.sysex(frame))
-                timed_out = not self._sysex_event.wait(self.app_settings.sysex_timeout_sec)
-                with self._sysex_lock:
-                    responses = [decode_sysex_response(data) for data in self._sysex_responses]
+                responses = self._send_sysex_and_decode(
+                    name,
+                    frame,
+                    self.app_settings.sysex_timeout_sec,
+                )
+                timed_out = not responses
                 self.input_queue.put(("sysex_probe_result", name, responses, timed_out))
             except Exception as exc:
                 self.input_queue.put(("error", exc))
@@ -1301,13 +1309,12 @@ class KO2DawApp:
         def worker() -> None:
             try:
                 for name, frame in frames:
-                    with self._sysex_lock:
-                        self._sysex_responses.clear()
-                    self._sysex_event.clear()
-                    self.controller.send(MidiMessage.sysex(frame))
-                    timed_out = not self._sysex_event.wait(self.app_settings.sysex_timeout_sec)
-                    with self._sysex_lock:
-                        responses = [decode_sysex_response(data) for data in self._sysex_responses]
+                    responses = self._send_sysex_and_decode(
+                        name,
+                        frame,
+                        self.app_settings.sysex_timeout_sec,
+                    )
+                    timed_out = not responses
                     self.input_queue.put(("sysex_probe_result", name, responses, timed_out))
                     time.sleep(0.08)
             except Exception as exc:
@@ -1316,14 +1323,27 @@ class KO2DawApp:
         threading.Thread(target=worker, daemon=True).start()
 
     def _send_sysex_and_decode(self, name: str, frame: bytes, timeout_sec: float) -> list[SysexDecodedResponse]:
-        with self._sysex_lock:
-            self._sysex_responses.clear()
-        self._sysex_event.clear()
-        self.controller.send(MidiMessage.sysex(frame))
-        self._sysex_event.wait(max(0.1, timeout_sec))
-        with self._sysex_lock:
-            responses = [decode_sysex_response(data) for data in self._sysex_responses]
-        return responses
+        del name
+        with self._sysex_transaction_lock:
+            with self._sysex_lock:
+                self._sysex_responses.clear()
+            self._sysex_event.clear()
+            self.controller.send(MidiMessage.sysex(frame))
+            deadline = time.monotonic() + max(0.1, timeout_sec)
+            cursor = 0
+            while time.monotonic() < deadline:
+                with self._sysex_lock:
+                    raw_responses = list(self._sysex_responses[cursor:])
+                    cursor = len(self._sysex_responses)
+                matched = matching_sysex_responses(frame, raw_responses)
+                if matched:
+                    return [decode_sysex_response(data) for data in matched]
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
+                self._sysex_event.wait(min(remaining, 0.05))
+                self._sysex_event.clear()
+        return []
 
     def _entries_from_responses(self, responses: list[SysexDecodedResponse]) -> list[dict[str, object]]:
         entries: list[dict[str, object]] = []

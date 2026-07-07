@@ -1,0 +1,103 @@
+{
+  "bpm": 120.0,
+  "clips": [
+    {
+      "clip_id": "C-37f5de6295d2",
+      "fade_in_sec": 0.0,
+      "fade_out_sec": 0.0,
+      "gain_db": 0.0,
+      "muted": false,
+      "name": "capture-20260611-074125",
+      "pan": 0.0,
+      "path": "C:\\Users\\sende\\Documents\\KO-2\\daw_projects\\audio_captures\\capture-20260611-074125.wav",
+      "reverse": false,
+      "source_in_sec": 0.0,
+      "source_out_sec": 0.125,
+      "start_sec": 1.0,
+      "stretch": 1.0,
+      "track_id": "T02"
+    },
+    {
+      "clip_id": "C-9def2af949ae",
+      "fade_in_sec": 0.0,
+      "fade_out_sec": 0.0,
+      "gain_db": 0.0,
+      "muted": false,
+      "name": "capture-20260611-074125",
+      "pan": 0.0,
+      "path": "C:\\Users\\sende\\Documents\\KO-2\\daw_projects\\audio_captures\\capture-20260611-074125.wav",
+      "reverse": false,
+      "source_in_sec": 0.125,
+      "source_out_sec": 0.15,
+      "start_sec": 1.125,
+      "stretch": 1.0,
+      "track_id": "T02"
+    }
+  ],
+  "master_gain_db": 0.0,
+  "name": "KO II Audio Project",
+  "sample_rate": 46875,
+  "schema": "ko2-daw.audio-project.v1",
+  "tracks": [
+    {
+      "armed": true,
+      "color": "#f2c230",
+      "gain_db": 0.0,
+      "muted": false,
+      "name": "Audio 1",
+      "pan": 0.0,
+      "solo": false,
+      "track_id": "T01"
+    },
+    {
+      "armed": false,
+      "color": "#e36a45",
+      "gain_db": 0.0,
+      "muted": false,
+      "name": "Audio 2",
+      "pan": 0.0,
+      "solo": false,
+      "track_id": "T02"
+    },
+    {
+      "armed": false,
+      "color": "#65a6a6",
+      "gain_db": 0.0,
+      "muted": false,
+      "name": "Audio 3",
+      "pan": 0.0,
+      "solo": false,
+      "track_id": "T03"
+    },
+    {
+      "armed": false,
+      "color": "#8fac56",
+      "gain_db": 0.0,
+      "muted": false,
+      "name": "Audio 4",
+      "pan": 0.0,
+      "solo": false,
+      "track_id": "T04"
+    },
+    {
+      "armed": false,
+      "color": "#d7f58a",
+      "gain_db": 0.0,
+      "muted": false,
+      "name": "Audio 5",
+      "pan": 0.0,
+      "solo": false,
+      "track_id": "T05"
+    },
+    {
+      "armed": false,
+      "color": "#b8a0cf",
+      "gain_db": 0.0,
+      "muted": false,
+      "name": "Audio 6",
+      "pan": 0.0,
+      "solo": false,
+      "track_id": "T06"
+    }
+  ]
+}

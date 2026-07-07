@@ -2,6 +2,7 @@ import contextlib
 import io
 import tempfile
 import unittest
+from unittest.mock import patch
 import wave
 from pathlib import Path
 
@@ -11,7 +12,7 @@ from ko2_daw.config import AppSettings, DAWConfig, DeviceSafetyConfig, load_app_
 from ko2_daw.controller import DAWController
 from ko2_daw.diagnostics import readiness_report
 from ko2_daw.gui import PAD_NOTES
-from ko2_daw.midi import DryRunMidiBackend, MidiMessage, _from_winmm_short_message, _to_winmm_short_message, _usb_class_from_ids
+from ko2_daw.midi import DryRunMidiBackend, MidiMessage, MidoMidiBackend, _from_winmm_short_message, _to_winmm_short_message, _usb_class_from_ids
 from ko2_daw.project_store import ProjectSnapshot, SafeProjectStore
 from ko2_daw.routing import KO2Route, resolve_ko2_route
 from ko2_daw.samples import SampleLibrary, read_wav_metadata
@@ -39,6 +40,13 @@ from ko2_daw.te_sysex import (
 
 
 class DAWControllerTests(unittest.TestCase):
+    @patch("ko2_daw.midi.importlib.util.find_spec")
+    def test_mido_backend_requires_python_rtmidi(self, find_spec):
+        find_spec.side_effect = lambda package: object() if package == "mido" else None
+
+        with self.assertRaisesRegex(RuntimeError, "python-rtmidi"):
+            MidoMidiBackend()
+
     def test_dry_run_note_and_clock_messages_are_recorded(self):
         backend = DryRunMidiBackend(output_ports=["KO II MIDI"])
         controller = DAWController(

@@ -1,0 +1,20 @@
+{
+  "captured_at": "2026-06-11T05:55:27+00:00",
+  "chunk_size": 512,
+  "crc32": 1863969578,
+  "crc_matches_metadata": null,
+  "declared_size": 117248,
+  "downloaded_size": 117248,
+  "file_name": "07",
+  "flags": 14,
+  "metadata_crc32": null,
+  "metadata_file": "metadata.json",
+  "node_id": 9000,
+  "offset": 0,
+  "pages": 362,
+  "project_analysis_file": "project_analysis.json",
+  "raw_file": "07.tar",
+  "schema": "ko2-daw.device-download.v1",
+  "sha256": "fb5918957d8d63f85db7a6db814294f03c426a43c3ccbf7b6894caa4bd6748c1",
+  "wav_file": null
+}

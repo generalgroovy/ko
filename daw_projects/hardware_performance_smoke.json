@@ -1,0 +1,64 @@
+{
+  "bpm": 120.0,
+  "events": [
+    {
+      "beat": 0.1,
+      "message": {
+        "channel": 0,
+        "control": null,
+        "data": [],
+        "kind": "note_on",
+        "note": 36,
+        "program": null,
+        "value": null,
+        "velocity": 24
+      },
+      "source": "app"
+    },
+    {
+      "beat": 0.3,
+      "message": {
+        "channel": 0,
+        "control": null,
+        "data": [],
+        "kind": "note_off",
+        "note": 36,
+        "program": null,
+        "value": null,
+        "velocity": 0
+      },
+      "source": "app"
+    },
+    {
+      "beat": 3.02886,
+      "message": {
+        "channel": 0,
+        "control": null,
+        "data": [],
+        "kind": "note_on",
+        "note": 36,
+        "program": null,
+        "value": null,
+        "velocity": 96
+      },
+      "source": "app"
+    },
+    {
+      "beat": 3.029851,
+      "message": {
+        "channel": 0,
+        "control": null,
+        "data": [],
+        "kind": "note_off",
+        "note": 36,
+        "program": null,
+        "value": null,
+        "velocity": 0
+      },
+      "source": "app"
+    }
+  ],
+  "loop_beats": 4.0,
+  "name": "EP-133 Performance",
+  "schema_version": 1
+}

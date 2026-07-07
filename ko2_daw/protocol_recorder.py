@@ -113,7 +113,11 @@ def midi_message_from_dict(data: dict[str, object]) -> MidiMessage | None:
     if kind == "note_on":
         return MidiMessage.note_on(int(data.get("note") or 0), int(data.get("velocity") or 0), channel=channel)
     if kind == "note_off":
-        return MidiMessage.note_off(int(data.get("note") or 0), channel=channel)
+        return MidiMessage.note_off(
+            int(data.get("note") or 0),
+            velocity=int(data.get("velocity") or 0),
+            channel=channel,
+        )
     if kind == "control_change":
         return MidiMessage.control_change(int(data.get("control") or 0), int(data.get("value") or 0), channel=channel)
     if kind == "program_change":
@@ -121,7 +125,7 @@ def midi_message_from_dict(data: dict[str, object]) -> MidiMessage | None:
     if kind == "start":
         return MidiMessage.start()
     if kind == "continue":
-        return MidiMessage.continue_transport()
+        return MidiMessage.continue_()
     if kind == "stop":
         return MidiMessage.stop()
     if kind == "clock":

@@ -1,0 +1,17 @@
+{
+  "access_mode": "read-playback",
+  "allow_file_playback": true,
+  "auto_connect_on_start": true,
+  "auto_scan_on_connect": true,
+  "max_sysex_bytes": 4194304,
+  "preferred_input_port": "EP-133",
+  "preferred_output_port": "EP-133",
+  "preferred_route": "auto",
+  "require_playback_confirmation": false,
+  "scan_max_depth": 6,
+  "scan_max_dirs": 500,
+  "scan_pages_per_dir": 32,
+  "sysex_enabled": true,
+  "sysex_timeout_sec": 2.0,
+  "write_arm_phrase": ""
+}

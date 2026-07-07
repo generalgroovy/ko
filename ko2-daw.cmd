@@ -1,4 +1,5 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-python run_ko2_daw.py %*
+call "%~dp0launch_ko2_daw.cmd" %*
+exit /b %errorlevel%

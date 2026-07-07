@@ -1,0 +1,423 @@
+{
+  "assigned_pad_count": 19,
+  "assignments": [
+    {
+      "assigned": true,
+      "byte_count": 27,
+      "group": "A",
+      "pad": 1,
+      "path": "pads/a/p01",
+      "sound_id": 34
+    },
+    {
+      "assigned": true,
+      "byte_count": 27,
+      "group": "A",
+      "pad": 2,
+      "path": "pads/a/p02",
+      "sound_id": 34
+    },
+    {
+      "assigned": true,
+      "byte_count": 27,
+      "group": "A",
+      "pad": 3,
+      "path": "pads/a/p03",
+      "sound_id": 34
+    },
+    {
+      "assigned": true,
+      "byte_count": 27,
+      "group": "A",
+      "pad": 4,
+      "path": "pads/a/p04",
+      "sound_id": 34
+    },
+    {
+      "assigned": true,
+      "byte_count": 27,
+      "group": "A",
+      "pad": 5,
+      "path": "pads/a/p05",
+      "sound_id": 34
+    },
+    {
+      "assigned": true,
+      "byte_count": 27,
+      "group": "A",
+      "pad": 6,
+      "path": "pads/a/p06",
+      "sound_id": 34
+    },
+    {
+      "assigned": true,
+      "byte_count": 27,
+      "group": "A",
+      "pad": 7,
+      "path": "pads/a/p07",
+      "sound_id": 1
+    },
+    {
+      "assigned": true,
+      "byte_count": 27,
+      "group": "A",
+      "pad": 8,
+      "path": "pads/a/p08",
+      "sound_id": 1
+    },
+    {
+      "assigned": true,
+      "byte_count": 27,
+      "group": "A",
+      "pad": 9,
+      "path": "pads/a/p09",
+      "sound_id": 1
+    },
+    {
+      "assigned": true,
+      "byte_count": 27,
+      "group": "A",
+      "pad": 10,
+      "path": "pads/a/p10",
+      "sound_id": 1
+    },
+    {
+      "assigned": true,
+      "byte_count": 27,
+      "group": "A",
+      "pad": 11,
+      "path": "pads/a/p11",
+      "sound_id": 1
+    },
+    {
+      "assigned": true,
+      "byte_count": 27,
+      "group": "A",
+      "pad": 12,
+      "path": "pads/a/p12",
+      "sound_id": 1
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "B",
+      "pad": 1,
+      "path": "pads/b/p01",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "B",
+      "pad": 2,
+      "path": "pads/b/p02",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "B",
+      "pad": 3,
+      "path": "pads/b/p03",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "B",
+      "pad": 4,
+      "path": "pads/b/p04",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "B",
+      "pad": 5,
+      "path": "pads/b/p05",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "B",
+      "pad": 6,
+      "path": "pads/b/p06",
+      "sound_id": 0
+    },
+    {
+      "assigned": true,
+      "byte_count": 27,
+      "group": "B",
+      "pad": 7,
+      "path": "pads/b/p07",
+      "sound_id": 7
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "B",
+      "pad": 8,
+      "path": "pads/b/p08",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "B",
+      "pad": 9,
+      "path": "pads/b/p09",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "B",
+      "pad": 10,
+      "path": "pads/b/p10",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "B",
+      "pad": 11,
+      "path": "pads/b/p11",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "B",
+      "pad": 12,
+      "path": "pads/b/p12",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "C",
+      "pad": 1,
+      "path": "pads/c/p01",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "C",
+      "pad": 2,
+      "path": "pads/c/p02",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "C",
+      "pad": 3,
+      "path": "pads/c/p03",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "C",
+      "pad": 4,
+      "path": "pads/c/p04",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "C",
+      "pad": 5,
+      "path": "pads/c/p05",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "C",
+      "pad": 6,
+      "path": "pads/c/p06",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "C",
+      "pad": 7,
+      "path": "pads/c/p07",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "C",
+      "pad": 8,
+      "path": "pads/c/p08",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "C",
+      "pad": 9,
+      "path": "pads/c/p09",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "C",
+      "pad": 10,
+      "path": "pads/c/p10",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "C",
+      "pad": 11,
+      "path": "pads/c/p11",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "C",
+      "pad": 12,
+      "path": "pads/c/p12",
+      "sound_id": 0
+    },
+    {
+      "assigned": true,
+      "byte_count": 27,
+      "group": "D",
+      "pad": 1,
+      "path": "pads/d/p01",
+      "sound_id": 6
+    },
+    {
+      "assigned": true,
+      "byte_count": 27,
+      "group": "D",
+      "pad": 2,
+      "path": "pads/d/p02",
+      "sound_id": 6
+    },
+    {
+      "assigned": true,
+      "byte_count": 27,
+      "group": "D",
+      "pad": 3,
+      "path": "pads/d/p03",
+      "sound_id": 200
+    },
+    {
+      "assigned": true,
+      "byte_count": 27,
+      "group": "D",
+      "pad": 4,
+      "path": "pads/d/p04",
+      "sound_id": 103
+    },
+    {
+      "assigned": true,
+      "byte_count": 27,
+      "group": "D",
+      "pad": 5,
+      "path": "pads/d/p05",
+      "sound_id": 105
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "D",
+      "pad": 6,
+      "path": "pads/d/p06",
+      "sound_id": 0
+    },
+    {
+      "assigned": true,
+      "byte_count": 27,
+      "group": "D",
+      "pad": 7,
+      "path": "pads/d/p07",
+      "sound_id": 22
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "D",
+      "pad": 8,
+      "path": "pads/d/p08",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "D",
+      "pad": 9,
+      "path": "pads/d/p09",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "D",
+      "pad": 10,
+      "path": "pads/d/p10",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "D",
+      "pad": 11,
+      "path": "pads/d/p11",
+      "sound_id": 0
+    },
+    {
+      "assigned": false,
+      "byte_count": 27,
+      "group": "D",
+      "pad": 12,
+      "path": "pads/d/p12",
+      "sound_id": 0
+    }
+  ],
+  "binary_records": [
+    {
+      "byte_count": 712,
+      "crc32": 4075153772,
+      "group": "",
+      "index": null,
+      "kind": "scenes",
+      "nonzero_byte_count": 211,
+      "path": "scenes",
+      "preview_hex": "0000000000040401010101040400000000040400000000040400000000040400",
+      "sha256": "8162cf5c243205185cf40322371c3067cf078ffbd2c5f177a20ee2aff45ffced"
+    },
+    {
+      "byte_count": 222,
+      "crc32": 1295760159,
+      "group": "",
+      "index": null,
+      "kind": "settings",
+      "nonzero_byte_count": 99,
+      "path": "settings",
+      "preview_hex": "000000000000f04200000000000000000000000000000000000080bf00000000",
+      "sha256": "af38b886c513b8d3a805f7dbd52bc978e8dd42b7cdb3163f69b36c2cadd7474d"
+    }
+  ],
+  "byte_count": 55808,
+  "directory_count": 6,
+  "file_count": 50,
+  "other_files": [
+    "scenes",
+    "settings"
+  ],
+  "pattern_count": 0,
+  "schema": "ko2-daw.ep133-project-analysis.v2",
+  "sha256": "6437a3ac94d1539a79d829c3c51d7a511aff34d3139d151cefb524c604440e34"
+}

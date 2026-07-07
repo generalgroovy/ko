@@ -1,11 +1,11 @@
 # KO II Companion Functionality Overview and Comparison
 
-Generated: 2026-05-21
+Updated: 2026-06-11
 
 References:
 - Live web app: https://generalgroovy.github.io/ko2/
 - Reference branch previously inspected: https://github.com/generalgroovy/ko2/tree/codex/ko2-sysex-lab
-- Current Python project: C:\Users\sende\PycharmProjects\ko2_sampler_daw
+- Current Python project: C:\Users\sende\Documents\KO-2
 
 ## Current Hardware Reality
 
@@ -202,12 +202,19 @@ Implemented after direct USB-C verification:
 - Awaiting and parsing SysEx responses.
 - File tree rows generated from real hardware root/sounds/projects lists.
 
-Still not implemented:
+Current transfer boundary:
 
-- Sample upload.
-- Sample download.
-- Project backup/restore.
-- Delete/move/metadata writes.
+- Sample download, metadata retrieval, CRC/SHA-256 verification, PCM-to-WAV
+  export, waveform display, and local preview are implemented.
+- All nine project archives are downloaded and integrity verified. The project
+  manager catalogs 9/9 slots, resumes missing backups, refreshes all versions,
+  opens decoded pad maps, and compares pad assignments plus exact changed byte
+  ranges in opaque project records.
+- Project records include 48 pad files, optional 160-byte `fx_settings`,
+  variable pattern files, 712-byte `scenes`, and 222-byte `settings`. Only the
+  verified pad sound-id field is semantically decoded.
+- Sample upload, project restore, delete, move, and metadata writes remain
+  blocked.
 
 Write operations are intentionally blocked until backup/download semantics are verified.
 
@@ -230,11 +237,15 @@ Current test coverage:
 - CLI CC/program dry-run output.
 - USB-only readiness report.
 - TE SysEx packing, frame parsing, identity parser, file payloads, write blocking.
+- Project TAR path safety, opaque record fingerprints, byte-range comparison,
+  catalog integrity, tamper detection, and resumable backup.
 
 Current result:
 
-- `python -m unittest discover -s tests`
-- 34 tests passed.
+- `python -m pytest -q`
+- The suite covers controller safety, protocol matching, device snapshots,
+  performance recording, file download integrity, WAV export, and GUI plugin
+  construction.
 
 ## generalgroovy.github.io/ko2 Overview
 
@@ -369,7 +380,7 @@ Additional functionality from the referenced branch README/protocol notes:
 | --- | --- | --- |
 | Runtime | Native Python desktop/CLI | Browser Web MIDI app |
 | Out-of-box install | No package install for dry-run/WinMM | Browser only, requires Web MIDI-capable browser |
-| UI | Tkinter KO II-style control surface | Dense EP Sample Tool-style web workspace |
+| UI | Tkinter KO II-style control surface plus full scene arranger | Dense EP Sample Tool-style web workspace |
 | MIDI discovery | WinMM, optional mido, Windows USB registry | Web MIDI API |
 | Current EP-133 detection on this PC | USB and direct MIDI endpoint ready as `EP-133` | Must be tested in Chrome/Edge with Web MIDI permission |
 | Native Windows MIDI | Yes, WinMM short messages | Browser abstracts MIDI |
@@ -380,30 +391,30 @@ Additional functionality from the referenced branch README/protocol notes:
 | SysEx protocol helpers | Yes, ported to Python | Yes, original JavaScript implementation |
 | SysEx live send | Identity/file probes and explicit selected-file playback preview over WinMM | Web MIDI SysEx send/probe surfaces |
 | File tree scanning | Automatic recursive device tree load on connection, selected-node refresh, cache/export from GUI | Read-only scan/cache UI |
-| Sample import/playback | Local WAV import, preview, manifest, MIDI trigger | Local audio/PCM import, preview, waveform |
-| WAV export | Not implemented | All/selected local WAV export |
-| Manifest/project import | Companion/session JSON only | JSON manifest import for samples/scenes/tracks/pads |
+| Sample import/playback | Local WAV import, preview, manifest, MIDI trigger, multitrack timeline | Local audio/PCM import, preview, waveform |
+| WAV export | Downloaded PCM export plus block-rendered stereo multitrack mixdown | All/selected local WAV export |
+| Manifest/project import | Arrangement/performance/session JSON; nine-slot project TAR catalog, pad map, binary inventory, and structural diff | JSON manifest import for samples/scenes/tracks/pads |
 | Sample slot table | 999-slot local WAV table | 999-slot sample table |
-| Local-vs-device comparison | Not implemented | Implemented for cached device tree/local samples |
-| Backup/restore | Not implemented and not safe until verified | UI target/surface; write operations guarded |
+| Local-vs-device comparison | Device library marks RAW/WAV availability and verified hashes per device node | Implemented for cached device tree/local samples |
+| Backup/restore | Immutable sound backup; all nine project TARs verified with resumable catalog and versioned refresh; restore blocked | UI target/surface; write operations guarded |
+| Arranger | Four tracks, eight scenes, polymetric clips, probability, CC automation, song chain, capture, clock master/follow, type-1 MIDI export | Basic performance and manifest surfaces; no equivalent tested native arranger |
+| Audio timeline | Multitrack PCM WAV clips, native input recording, trim/split/stretch/reverse/fades/mixer, normalized render, synchronized KO II bounce | Local sample preview/export, not a tested multitrack native DAW |
 | Write operations | Upload/delete/move/metadata writes blocked; selected-file playback start/stop allowed explicitly | Guarded/blocked by default in reference branch |
-| Tests | Python unittest suite, 34 tests | No local test suite observed in static web app files |
+| Tests | Python pytest suite covering hardware safety, protocol, DAW, and GUI modules | No local test suite observed in static web app files |
 
 ## Functionality Missing From Python Project Compared To Web App
 
 High-value gaps:
 
 1. Drag/drop or file picker import for AIFF/PCM/RAW.
-2. Waveform rendering.
-3. WAV export.
-4. Ten-bank browser around the 999-slot sample table.
-5. JSON manifest import for scenes/tracks/pads/clips.
-6. Project view for scenes/tracks/clips.
-7. Timeline for local playback and MIDI activity.
-8. Local-vs-device sample comparison.
-9. SysEx request matching beyond first-response collection.
-10. Browser-style function queue / protocol log export.
-11. Safe staged path toward verified backup/download.
+2. Ten-bank browser around the 999-slot sample table.
+3. General JSON manifest import for external scenes/tracks/pads/clips.
+4. AIFF/FLAC/MP3 decoding and high-quality phase-vocoder time-stretch.
+5. Hash-based local-vs-device comparison across an entire library.
+6. A persistent background operation queue with pause/resume.
+7. Decoding independently verified fields inside project `scenes` and
+   `settings` records.
+8. Verified restore with preflight backup, read-back comparison, and rollback.
 
 ## Functionality Present In Python Project But Not Central In Web App
 
@@ -419,6 +430,10 @@ High-value gaps:
 10. CLI-first hardware diagnostics that work outside a browser.
 11. Automatic recursive hardware file tree load on GUI connection.
 12. Selected hardware sound/track file playback preview from the native GUI.
+13. Native four-group scene/song arranger with MIDI clock master and follower.
+14. Safe in-memory EP-133 project TAR parser and pad-to-sound inspector.
+15. Native WinMM multitrack recording and a non-destructive audio timeline.
+16. Synchronized EP-133 MIDI arranger-to-audio bounce through QUAD-CAPTURE.
 
 ## Required Direction So Python App Can Control The Connected KO II
 
@@ -474,8 +489,8 @@ Priority 2: Import the web app's local sample workflow.
 
 - Add local audio import.
 - Add sample table.
-- Add waveform preview.
-- Add WAV export.
+- Keep waveform preview and WAV export integrated with the content-addressed
+  device library.
 - Add JSON manifest import/export.
 
 Priority 3: Import project/timeline workflow.

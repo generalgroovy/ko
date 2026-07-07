@@ -56,6 +56,8 @@ class TEFileCommand:
     CAPABILITY_PLAYBACK = 64
     INFO = 11
     MOVED = 12
+    GET_TYPE_INIT = 0
+    GET_TYPE_DATA = 1
 
 
 WRITE_FILE_SUBCOMMANDS = {
@@ -104,6 +106,20 @@ class TEFileEntry:
     @property
     def is_file(self) -> bool:
         return bool(self.flags & TEFileCommand.FILE_TYPE_FILE)
+
+
+@dataclass(frozen=True)
+class TEFileDownloadInfo:
+    node_id: int
+    flags: int
+    size: int
+    name: str
+
+
+@dataclass(frozen=True)
+class TEFileDataPage:
+    page: int
+    data: bytes
 
 
 def bytes_to_hex(data: bytes | bytearray | list[int]) -> str:
@@ -245,6 +261,44 @@ def build_file_info_payload(node_id: int = 0) -> bytes:
     return bytes([TEFileCommand.INFO, (node_id >> 8) & 0xFF, node_id & 0xFF])
 
 
+def build_file_get_init_payload(
+    node_id: int,
+    *,
+    offset: int = 0,
+    extra_args: bytes | bytearray | None = None,
+) -> bytes:
+    node_id = _unsigned_value(node_id, 16, "node_id")
+    offset = _unsigned_value(offset, 32, "offset")
+    payload = bytearray(
+        [
+            TEFileCommand.GET,
+            TEFileCommand.GET_TYPE_INIT,
+            (node_id >> 8) & 0xFF,
+            node_id & 0xFF,
+            (offset >> 24) & 0xFF,
+            (offset >> 16) & 0xFF,
+            (offset >> 8) & 0xFF,
+            offset & 0xFF,
+        ]
+    )
+    if extra_args is not None:
+        payload.extend(b"\x00" * 8)
+        payload.extend(bytes(extra_args))
+    return bytes(payload)
+
+
+def build_file_get_data_payload(page: int) -> bytes:
+    page = _unsigned_value(page, 16, "page")
+    return bytes(
+        [
+            TEFileCommand.GET,
+            TEFileCommand.GET_TYPE_DATA,
+            (page >> 8) & 0xFF,
+            page & 0xFF,
+        ]
+    )
+
+
 def build_file_metadata_get_payload(node_id: int = 0, page: int = 0, key: str = "") -> bytes:
     key_bytes = string_to_bytes(key) if key else b""
     payload = bytearray([TEFileCommand.METADATA, TEFileCommand.METADATA_GET, (node_id >> 8) & 0xFF, node_id & 0xFF, (page >> 8) & 0xFF, page & 0xFF])
@@ -281,6 +335,30 @@ def parse_file_list_response(payload: bytes | bytearray | list[int]) -> dict[str
         entries.append(TEFileEntry(node_id, flags, size, name))
         offset = name_end + 1
     return {"page": page, "entries": entries}
+
+
+def parse_file_get_init_response(
+    payload: bytes | bytearray | list[int],
+) -> TEFileDownloadInfo:
+    raw = bytes(payload)
+    if len(raw) < 8:
+        raise ValueError("File GET init response is shorter than 8 bytes.")
+    node_id = int.from_bytes(raw[0:2], "big")
+    flags = raw[2]
+    size = int.from_bytes(raw[3:7], "big")
+    name = bytes_to_string(raw[7:].split(b"\x00", 1)[0])
+    if not name:
+        raise ValueError("File GET init response did not include a filename.")
+    return TEFileDownloadInfo(node_id=node_id, flags=flags, size=size, name=name)
+
+
+def parse_file_get_data_response(
+    payload: bytes | bytearray | list[int],
+) -> TEFileDataPage:
+    raw = bytes(payload)
+    if len(raw) < 2:
+        raise ValueError("File GET data response is shorter than 2 bytes.")
+    return TEFileDataPage(page=int.from_bytes(raw[0:2], "big"), data=raw[2:])
 
 
 def parse_json_metadata_payload(payload: bytes | bytearray | list[int]) -> dict[str, object]:
@@ -349,3 +427,11 @@ def assert_command_allowed(command: int, payload: bytes | bytearray | list[int])
 def self_test_packing() -> bool:
     sample = bytes([0, 1, 2, 3, 4, 5, 6, 7, 127, 128, 129, 255])
     return unpack_7bit_payload(pack_to_7bit_payload(sample)) == sample
+
+
+def _unsigned_value(value: int, bits: int, name: str) -> int:
+    parsed = int(value)
+    maximum = (1 << bits) - 1
+    if not 0 <= parsed <= maximum:
+        raise ValueError(f"{name} must fit in an unsigned {bits}-bit value.")
+    return parsed

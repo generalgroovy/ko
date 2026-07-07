@@ -9,11 +9,24 @@ import sys
 import tempfile
 import time
 
+from ko2_daw.audio_timeline import AudioSession, render_audio_project
 from ko2_daw.config import DAWConfig, DeviceSafetyConfig
 from ko2_daw.controller import DAWController
 from ko2_daw.capabilities import run_device_capability_probe, save_capability_report
+from ko2_daw.device_snapshot import SnapshotLimits, capture_device_snapshot, save_device_snapshot
+from ko2_daw.device_transfer import (
+    DeviceDownloadLimits,
+    download_device_file_live,
+    save_device_download,
+)
 from ko2_daw.diagnostics import readiness_report
 from ko2_daw.midi import DryRunMidiBackend, MidiBackend, MidoMidiBackend, WinMMInputMonitor, WinMMMidiBackend, midi_capability_report
+from ko2_daw.native_audio import list_wave_input_devices, record_wave_input
+from ko2_daw.project_catalog import (
+    backup_project_archives_live,
+    build_project_catalog,
+    save_project_catalog,
+)
 from ko2_daw.project_store import ProjectSnapshot, SafeProjectStore
 from ko2_daw.routing import resolve_ko2_route
 from ko2_daw.sequencer import StepEvent, StepSequencer
@@ -52,6 +65,110 @@ def build_parser() -> argparse.ArgumentParser:
         "--capability-report-txt",
         default=None,
         help="Save --capability-scan output to this text file.",
+    )
+    parser.add_argument(
+        "--device-snapshot",
+        default=None,
+        help="Capture the complete read-only EP-133 file tree and save it as integrity-checked JSON.",
+    )
+    parser.add_argument("--snapshot-pages", type=int, default=32, help="Maximum pages per device directory.")
+    parser.add_argument("--snapshot-depth", type=int, default=8, help="Maximum device directory depth.")
+    parser.add_argument("--snapshot-directories", type=int, default=1000, help="Maximum directories to scan.")
+    parser.add_argument("--snapshot-timeout", type=float, default=2.0, help="Seconds to wait per snapshot request.")
+    parser.add_argument(
+        "--device-download-node",
+        type=int,
+        default=None,
+        help="Read a device file or project archive by node id and save an integrity-checked local bundle.",
+    )
+    parser.add_argument(
+        "--device-download-dir",
+        default=None,
+        help="Root directory for immutable device download bundles. Defaults to <project-root>/device_library.",
+    )
+    parser.add_argument(
+        "--device-download-no-metadata",
+        action="store_true",
+        help="Skip metadata retrieval, useful for directory/project archive nodes.",
+    )
+    parser.add_argument(
+        "--device-download-raw-only",
+        action="store_true",
+        help="Do not convert recognized PCM downloads to WAV.",
+    )
+    parser.add_argument(
+        "--device-download-timeout",
+        type=float,
+        default=3.0,
+        help="Seconds to wait for each device download request.",
+    )
+    parser.add_argument(
+        "--device-download-max-bytes",
+        type=int,
+        default=128 * 1024 * 1024,
+        help="Maximum device file size accepted by a read-only download.",
+    )
+    parser.add_argument(
+        "--device-project-catalog",
+        action="store_true",
+        help="Verify local EP-133 project bundles and write project_catalog.json.",
+    )
+    parser.add_argument(
+        "--device-project-catalog-output",
+        default=None,
+        help="Optional output path for --device-project-catalog.",
+    )
+    parser.add_argument(
+        "--device-project-backup-all",
+        action="store_true",
+        help="Read-only backup of all nine EP-133 projects, skipping verified local bundles.",
+    )
+    parser.add_argument(
+        "--device-project-backup-force",
+        action="store_true",
+        help="Download every project even when an integrity-verified bundle exists.",
+    )
+    parser.add_argument(
+        "--list-audio-inputs",
+        action="store_true",
+        help="List native Windows audio capture inputs.",
+    )
+    parser.add_argument(
+        "--audio-capture",
+        default=None,
+        help="Record a bounded local PCM WAV through native WinMM.",
+    )
+    parser.add_argument(
+        "--audio-input",
+        default=None,
+        help="Exact or unique substring of the Windows audio input name.",
+    )
+    parser.add_argument(
+        "--audio-duration",
+        type=float,
+        default=10.0,
+        help="Maximum local audio capture duration in seconds.",
+    )
+    parser.add_argument(
+        "--audio-rate",
+        type=int,
+        default=48000,
+        help="Local audio capture sample rate.",
+    )
+    parser.add_argument(
+        "--audio-render-project",
+        default=None,
+        help="Render a saved KO II audio project JSON.",
+    )
+    parser.add_argument(
+        "--audio-render-output",
+        default=None,
+        help="Output WAV for --audio-render-project. Defaults beside the project.",
+    )
+    parser.add_argument(
+        "--audio-normalize",
+        action="store_true",
+        help="Peak-normalize an audio project render to -0.2 dBFS.",
     )
     parser.add_argument("--init-session", default=None, help="Create a companion session JSON under --project-root.")
     parser.add_argument(
@@ -145,6 +262,187 @@ def main(argv: list[str] | None = None) -> int:
         if args.capability_report_txt:
             path = save_capability_report(capability_report, args.capability_report_txt)
             print(f"saved_capability_report={path}")
+        return 0
+    if args.device_snapshot:
+        try:
+            snapshot = capture_device_snapshot(
+                limits=SnapshotLimits(
+                    pages_per_directory=args.snapshot_pages,
+                    max_depth=args.snapshot_depth,
+                    max_directories=args.snapshot_directories,
+                    timeout_sec=args.snapshot_timeout,
+                )
+            )
+            path = save_device_snapshot(snapshot, args.device_snapshot)
+        except (RuntimeError, ValueError, PermissionError, TimeoutError) as exc:
+            parser.exit(2, f"error: {exc}\n")
+        print(f"device_snapshot={path}")
+        print(f"identity={snapshot.identity_sku or 'unknown'}")
+        print(f"chunk_size={snapshot.chunk_size}")
+        print(f"records={len(snapshot.records)}")
+        print(f"files={len(snapshot.files)}")
+        print(f"directories={len(snapshot.directories)}")
+        print(f"directories_scanned={snapshot.directories_scanned}")
+        print(f"pages_requested={snapshot.pages_requested}")
+        print(f"total_file_bytes={snapshot.total_file_bytes}")
+        print(f"integrity_sha256={snapshot.integrity_sha256}")
+        for warning in snapshot.warnings:
+            print(f"warning={warning}")
+        return 0
+    if args.device_project_backup_all:
+        target_root = (
+            Path(args.device_download_dir)
+            if args.device_download_dir
+            else Path(args.project_root) / "device_library"
+        )
+        try:
+            result = backup_project_archives_live(
+                target_root,
+                force=args.device_project_backup_force,
+                limits=DeviceDownloadLimits(
+                    timeout_sec=args.device_download_timeout,
+                    max_file_bytes=args.device_download_max_bytes,
+                ),
+            )
+        except (
+            RuntimeError,
+            ValueError,
+            PermissionError,
+            TimeoutError,
+            json.JSONDecodeError,
+        ) as exc:
+            parser.exit(2, f"error: {exc}\n")
+        print(f"project_backup_catalog={result.catalog_path}")
+        print(f"project_backup_verified={result.catalog.verified_count}")
+        print(
+            "project_backup_downloaded="
+            + ",".join(str(node) for node in result.downloaded_nodes)
+        )
+        print(
+            "project_backup_skipped="
+            + ",".join(str(node) for node in result.skipped_nodes)
+        )
+        print(f"project_backup_integrity_sha256={result.catalog.integrity_sha256}")
+        return 0
+    if args.device_project_catalog:
+        target_root = (
+            Path(args.device_download_dir)
+            if args.device_download_dir
+            else Path(args.project_root) / "device_library"
+        )
+        try:
+            catalog = build_project_catalog(target_root)
+            path = save_project_catalog(
+                catalog,
+                args.device_project_catalog_output,
+            )
+        except (
+            OSError,
+            ValueError,
+            json.JSONDecodeError,
+        ) as exc:
+            parser.exit(2, f"error: {exc}\n")
+        print(f"project_catalog={path}")
+        print(f"project_catalog_verified={catalog.verified_count}")
+        print(
+            "project_catalog_missing="
+            + ",".join(str(node) for node in catalog.missing_nodes)
+        )
+        print(f"project_catalog_integrity_sha256={catalog.integrity_sha256}")
+        return 0
+    if args.device_download_node is not None:
+        try:
+            download = download_device_file_live(
+                args.device_download_node,
+                include_metadata=not args.device_download_no_metadata,
+                limits=DeviceDownloadLimits(
+                    timeout_sec=args.device_download_timeout,
+                    max_file_bytes=args.device_download_max_bytes,
+                ),
+            )
+            target_root = (
+                Path(args.device_download_dir)
+                if args.device_download_dir
+                else Path(args.project_root) / "device_library"
+            )
+            artifact = save_device_download(
+                download,
+                target_root,
+                export_wav=not args.device_download_raw_only,
+            )
+        except (
+            RuntimeError,
+            ValueError,
+            PermissionError,
+            TimeoutError,
+            json.JSONDecodeError,
+        ) as exc:
+            parser.exit(2, f"error: {exc}\n")
+        print(f"device_download_node={download.node_id}")
+        print(f"device_download_name={download.file_name}")
+        print(f"device_download_bytes={download.downloaded_size}")
+        print(f"device_download_pages={download.pages}")
+        print(f"device_download_sha256={download.sha256}")
+        print(f"device_download_crc32={download.crc32}")
+        print(f"device_download_crc_match={download.crc_matches_metadata}")
+        print(f"device_download_bundle={artifact.bundle_dir}")
+        print(f"device_download_raw={artifact.raw_path}")
+        if artifact.wav_path:
+            print(f"device_download_wav={artifact.wav_path}")
+        if artifact.project_analysis_path:
+            print(f"device_download_project_analysis={artifact.project_analysis_path}")
+        return 0
+    if args.list_audio_inputs:
+        devices = list_wave_input_devices()
+        print("Native audio inputs")
+        for device in devices:
+            print(
+                f"audio_input id={device.device_id} channels={device.channels} "
+                f"name={device.name!r}"
+            )
+        if not devices:
+            print("audio_input none")
+        return 0
+    if args.audio_capture:
+        try:
+            result = record_wave_input(
+                args.audio_capture,
+                device_name=args.audio_input,
+                duration_sec=args.audio_duration,
+                sample_rate=args.audio_rate,
+                channels=2,
+                bits_per_sample=16,
+            )
+        except (RuntimeError, ValueError, TimeoutError) as exc:
+            parser.exit(2, f"error: {exc}\n")
+        print(f"audio_capture={result.path}")
+        print(f"audio_capture_input={result.device.name}")
+        print(f"audio_capture_frames={result.frames}")
+        print(f"audio_capture_duration={result.duration_sec:.6f}")
+        print(f"audio_capture_bytes={result.bytes_recorded}")
+        return 0
+    if args.audio_render_project:
+        project_path = Path(args.audio_render_project)
+        output_path = (
+            Path(args.audio_render_output)
+            if args.audio_render_output
+            else project_path.with_name(f"{project_path.stem}-mix.wav")
+        )
+        try:
+            session = AudioSession.load(project_path)
+            result = render_audio_project(
+                session.project,
+                output_path,
+                normalize=args.audio_normalize,
+            )
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            parser.exit(2, f"error: {exc}\n")
+        print(f"audio_render={result.path}")
+        print(f"audio_render_frames={result.frames}")
+        print(f"audio_render_duration={result.duration_sec:.6f}")
+        print(f"audio_render_peak={result.peak:.8f}")
+        print(f"audio_render_clipped={result.clipped_samples}")
+        print(f"audio_render_normalized_gain_db={result.normalized_gain_db:.4f}")
         return 0
     if args.sysex_probe:
         print_sysex_probe(args)
@@ -532,6 +830,10 @@ def print_startup_status(report: dict[str, object]) -> None:
     print("  python run_ko2_daw.py --live --ko2-route usb-midi --sysex-probe identity --send-sysex-probe")
     print("  python run_ko2_daw.py --live --ko2-route usb-midi --sysex-probe root-list --send-sysex-probe")
     print("  python run_ko2_daw.py --capability-scan --capability-report-txt docs\\ko2_device_interaction_capabilities.txt")
+    print("  python run_ko2_daw.py --device-snapshot daw_projects\\ep133_device_snapshot.json")
+    print("  python run_ko2_daw.py --device-download-node 207")
+    print("  python run_ko2_daw.py --device-project-catalog")
+    print("  python run_ko2_daw.py --device-project-backup-all")
     print("  python run_ko2_daw.py --monitor-input --monitor-seconds 10 --state-json daw_projects\\ko2_state.json")
     print("  python run_ko2_daw.py --note 60 --save-project ko2_session.json")
     print()

@@ -1,6 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 from pathlib import Path
+from PyInstaller.utils.hooks import collect_submodules
 
 ROOT = Path.cwd()
 
@@ -14,33 +15,7 @@ a = Analysis(
     datas=[
         (str(ROOT / "README.md"), "."),
     ],
-    hiddenimports=[
-        "ko2_daw.app",
-        "ko2_daw.launcher",
-        "ko2_daw.gui",
-        "ko2_daw.gui_plugins",
-        "ko2_daw.gui_all_groups_matrix",
-        "ko2_daw.gui_comm_panel",
-        "ko2_daw.gui_connection_guard",
-        "ko2_daw.gui_detection_menu",
-        "ko2_daw.gui_device_main",
-        "ko2_daw.gui_file_explorer_window",
-        "ko2_daw.gui_midi_detection",
-        "ko2_daw.gui_photo_layout",
-        "ko2_daw.gui_protocol_window",
-        "ko2_daw.gui_scrollbars",
-        "ko2_daw.gui_segment_grid",
-        "ko2_daw.gui_song_timeline",
-        "ko2_daw.gui_state_poll",
-        "ko2_daw.gui_visual_stability",
-        "ko2_daw.group_segments",
-        "ko2_daw.hardware_explorer",
-        "ko2_daw.port_match",
-        "ko2_daw.protocol_recorder",
-        "ko2_daw.support_bundle",
-        "tkinter",
-        "tkinter.ttk",
-    ],
+    hiddenimports=collect_submodules("ko2_daw"),
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

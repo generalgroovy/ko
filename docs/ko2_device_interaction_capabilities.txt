@@ -1,6 +1,6 @@
 KO II / EP-133 Device Interaction Capability Scan
 ====================================================
-Generated: 2026-05-21T13:56:47
+Generated: 2026-06-11T01:59:37
 
 References
 - Official MIDI/system guide: https://teenage.engineering/guides/ep-133/system
@@ -116,10 +116,35 @@ Capability Matrix
 - Device Files: Read-only file init/list for sounds and projects
   support: confirmed
   evidence: TE SysEx file probes list root, sounds, and projects.
-- Device File Playback: Selected sound/track file preview
-  support: exposed as explicit experimental action
-  evidence: TE SysEx reference exposes PLAYBACK, PLAYBACK_START, and PLAYBACK_STOP constants; GUI now sends only those selected-file preview actions.
-  app action: Use PLAY FILE / STOP FILE from Hardware Files after selecting a file row. Keep upload/delete/move/metadata writes blocked.
+  app action: Use Hardware Files for browsing, Device Snapshot for recursive inventory, and Device Library for integrity-checked PCM download/WAV export.
+- Device File GET: Download sound PCM and metadata
+  support: confirmed
+  evidence: Node 207 downloaded as 3,988 bytes over 13 pages; SHA-256 was a6776d9fc2fded058e33c98874b7ce51eede2f6eea71b6edd9968f506899befd and metadata CRC32 2251392378 matched the raw bytes.
+  app action: FETCH + WAV stores an immutable raw bundle, metadata, manifest, WAV, and local waveform.
+- Project Archive GET: Read-only project backup representation
+  support: confirmed
+  evidence: Project node 3000 downloaded twice as 55,808 bytes over 173 pages; both copies SHA-256 6437a3ac94d1539a79d829c3c51d7a511aff34d3139d151cefb524c604440e34.
+  app action: Use --device-download-no-metadata --device-download-raw-only; completed TAR bundles are decoded into a safe pad map.
+- Scene Arranger: Four-group clip and song production
+  support: implemented and live-tested
+  evidence: Native WinMM sent Start, 24 clock ticks, note 36 on/off at velocity 20, and Stop with no errors. The EP-133 returned no short-MIDI echo.
+  app action: DAW > Scene Arranger provides eight scenes, polymetric clips, probability, CC automation, song chaining, capture, clock master/follow, JSON save/load, and type-1 MIDI export.
+- Project TAR Pad Map: Decode project pad-to-sound assignments
+  support: confirmed against live archive
+  evidence: Live project uses pads/{a-d}/p{01-12}, 27 bytes each; sound id is signed int16 little-endian at offset 1. All 48 pads decoded and 19 are assigned.
+  app action: Parser stays in memory, rejects unsafe paths/links/malformed or oversized records, writes project_analysis.json, and exposes Device Library > Inspect Downloaded Project.
+- Nine-Slot Project Catalog And Comparison
+  support: implemented and confirmed against all visible live projects
+  evidence: Nodes 3000-11000 were downloaded completely; all nine raw SHA-256 hashes match their manifests. Captures contain 19-42 assigned pads, 0-62 pattern records, fixed 712-byte scenes and 222-byte settings records, and optional 160-byte fx_settings.
+  app action: Projects > Open Project Manager verifies bundles, resumes missing backups, refreshes all content-addressed versions, opens pad maps, inventories opaque records, compares exact byte ranges without assigning unverified semantics, and can explicitly trigger the selected physical pad on the currently loaded device project.
+- Audio Studio: Native multitrack recording, editing, and mixdown
+  support: implemented and hardware-tested
+  evidence: QUAD-CAPTURE MAIN captured exact bounded WinMM frame counts; GUI capture/import/drag/split/save/load/render completed with zero clipped samples.
+  app action: DAW > Audio Studio provides armed tracks, native capture, waveform timeline, trim/stretch/reverse/fades/mixer, WAV render, and device-library import.
+- Synchronized KO II Bounce: Drive arranger while recording hardware audio
+  support: control and capture timing confirmed
+  evidence: EP-133 received arranger transport/clock/note while QUAD-CAPTURE capture ran and imported automatically. Captured signal remained at noise floor, indicating the KO II analog output is not currently routed to the selected input.
+  app action: Connect EP-133 live, arm an audio track, choose the physical input, and use KO II BOUNCE.
 - Current State: Query playing track, selected effect, selected pad, complete project state
   support: not exposed by tested surface
   evidence: No public MIDI/SysEx probe tested returned complete current front-panel/project/effect state.
@@ -131,8 +156,15 @@ Capability Matrix
 
 Practical Conclusions
 - Direct USB-C MIDI is the correct route on this machine when EP-133 appears as both input and output.
-- The app can send pad triggers, transport start/stop/continue, clock ticks, CC 1 fader output, bank select, program change, panic messages, read-only device file browsing, and explicit selected-file playback preview over the confirmed EP-133 route.
+- The app can send pad triggers, transport start/stop/continue, clock ticks, CC 1 fader output, bank select, program change, panic messages, and read-only device file browsing over the confirmed EP-133 route.
+- Full read-only snapshots preserve node/path/size metadata and a canonical SHA-256 inventory hash for before/after integrity checks.
+- Selected sounds can be downloaded, CRC-verified against device metadata, converted to WAV, viewed as a waveform, and previewed locally without a device write.
+- The stable Scene Arranger can sequence all 48 KO II pad notes, automate MIDI CC, record armed groups, follow or generate clock, and export editable projects/MIDI without writing device storage.
+- Completed project archive downloads are inspected in memory and mapped to group/pad sound assignments without extracting archive members. Opaque records receive hashes and can be diffed by exact byte range.
+- The current 9/9 project catalog has aggregate content/structure SHA-256 dd8093f1f9edd327ebc4a4be9cf33b7cbad83666dc0571b3b6f5a1f5399290f6.
+- Native audio capture and timeline edits are local-only and do not write EP-133 storage.
+- SysEx responses are matched by request id and command because the EP-133 can emit unrelated firmware diagnostic messages.
+- A GET init must be followed by every declared data page. Abandoning a manual GET can leave the device file service returning `err lfs 6327 2_0_5` until reconnect/power-cycle.
 - The device does not expose a generic query for the current playing scene, selected pad, selected effect, complete project state, or current front-panel mode through the tested public MIDI/SysEx surface.
 - Pause is not a distinct standard MIDI transport command. The available controls are Start, Continue, and Stop. The app should label this as transport Start/Continue/Stop rather than DAW-style play/pause.
 - File and sample upload/delete/move/metadata writes must stay blocked until a backup/restore workflow is fully verified.
-- GUI Settings now makes startup auto-connect, route, SysEx, playback preview, scan limits, and write-frame policy configurable in the app itself.

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import threading
+import time
 
 from ko2_daw.config import DAWConfig, DeviceSafetyConfig
 from ko2_daw.controller import DAWController
@@ -36,6 +37,28 @@ class SysexProbeResult:
     timed_out: bool
 
 
+def sysex_response_matches(request: bytes, response: bytes) -> bool:
+    """Return whether a SysEx response belongs to the supplied request."""
+
+    if request[:5] == bytes([0xF0, 0x7E, 0x7F, 0x06, 0x01]):
+        return parse_universal_identity(response) is not None
+
+    request_frame = parse_te_frame(request)
+    response_frame = parse_te_frame(response)
+    if request_frame is None or response_frame is None:
+        return False
+    if request_frame.frame_type != "request" or response_frame.frame_type != "response":
+        return False
+    return (
+        response_frame.command == request_frame.command
+        and response_frame.request_id == request_frame.request_id
+    )
+
+
+def matching_sysex_responses(request: bytes, responses: list[bytes]) -> list[bytes]:
+    return [response for response in responses if sysex_response_matches(request, response)]
+
+
 def send_read_only_sysex_probe(
     input_port: str,
     output_port: str,
@@ -64,7 +87,21 @@ def send_read_only_sysex_probe(
     monitor.start()
     try:
         controller.send(MidiMessage.sysex(frame))
-        timed_out = not received.wait(max(0.1, timeout_sec))
+        deadline = time.monotonic() + max(0.1, timeout_sec)
+        cursor = 0
+        matched: list[bytes] = []
+        while time.monotonic() < deadline:
+            current = list(responses[cursor:])
+            cursor = len(responses)
+            matched.extend(matching_sysex_responses(frame, current))
+            if matched:
+                break
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            received.wait(min(remaining, 0.05))
+            received.clear()
+        timed_out = not matched
     finally:
         monitor.stop()
         backend.close()
@@ -72,7 +109,7 @@ def send_read_only_sysex_probe(
         input_port=input_port,
         output_port=output_port,
         request_hex=bytes_to_hex(frame),
-        responses=[decode_sysex_response(data) for data in responses],
+        responses=[decode_sysex_response(data) for data in matched],
         timed_out=timed_out,
     )
 
