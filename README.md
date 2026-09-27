@@ -3,11 +3,36 @@
 Windows companion DAW, performance recorder, protocol lab, and integrity-safe
 device explorer for the Teenage Engineering EP-133 / KO II.
 
+This is the main KO II project. The earlier [KO II Web MIDI Lab](https://github.com/generalgroovy/ko2)
+is retained as a historical prototype; its local sample libraries can be migrated here.
+See [consolidation and migration](docs/web-library-migration.md) for the capability comparison.
+
+## Import An Existing Browser Library
+
+In the old Web MIDI Lab, download each local sample as WAV and export its JSON
+manifest. Put the WAV downloads in one folder, keeping their download names.
+In this app's **Samples** tab, select **IMPORT WEB LIBRARY**, choose the JSON,
+then choose the WAV folder. Samples are added to free slots. **SAVE MANIFEST**
+saves the resulting local table.
+
+The JSON contains metadata, not audio. Missing WAVs, repeated filenames, invalid
+audio, or insufficient slots cancel the whole import and leave the current
+library unchanged. Audio remains in the selected folder. This workflow does not
+connect to or upload anything to a device.
+
+For a local command-line conversion to a new desktop manifest:
+
+```powershell
+python -m ko2_daw --import-web-manifest ko2-local-samples.json --sample-audio-dir exported-wavs --sample-manifest-output migrated-library.json
+```
+
+## Historical Device Verification
+
 The connected device was verified on **June 11, 2026** using a PC USB-A to
 device USB-C data connection. Windows exposes it as both MIDI input and output
 named `EP-133`.
 
-Current verified device:
+Device observed in that June 11 session (not a new hardware verification):
 
 - Universal identity: `TE032AS001`
 - Route: direct WinMM `EP-133 -> EP-133`

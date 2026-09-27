@@ -8,6 +8,7 @@ from pathlib import Path
 import sys
 import tempfile
 import time
+import wave
 
 from ko2_daw.audio_timeline import AudioSession, render_audio_project
 from ko2_daw.config import DAWConfig, DeviceSafetyConfig
@@ -29,6 +30,7 @@ from ko2_daw.project_catalog import (
 )
 from ko2_daw.project_store import ProjectSnapshot, SafeProjectStore
 from ko2_daw.routing import resolve_ko2_route
+from ko2_daw.samples import SampleLibrary
 from ko2_daw.sequencer import StepEvent, StepSequencer
 from ko2_daw.session import CompanionSessionStore, default_session
 from ko2_daw.state import KO2RuntimeState
@@ -217,6 +219,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--bank-lsb", type=int, default=None, help="Send bank select LSB using CC 32.")
     parser.add_argument("--save-project", default=None, help="Relative JSON path under --project-root.")
     parser.add_argument("--project-root", default="daw_projects")
+    parser.add_argument("--import-web-manifest", help="Import a KO II Web MIDI Lab JSON export locally.")
+    parser.add_argument("--sample-audio-dir", help="Folder containing the browser's exported WAV files.")
+    parser.add_argument("--sample-manifest-output", help="New desktop manifest path; existing files are protected.")
     return parser
 
 
@@ -224,6 +229,23 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     raw_argv = sys.argv[1:] if argv is None else argv
     args = parser.parse_args(raw_argv)
+
+    if args.import_web_manifest:
+        if not args.sample_audio_dir or not args.sample_manifest_output:
+            parser.error("--import-web-manifest requires --sample-audio-dir and --sample-manifest-output")
+        output = Path(args.sample_manifest_output)
+        if output.exists():
+            parser.error("Sample manifest output already exists; choose a new path.")
+        try:
+            library = SampleLibrary()
+            count = library.import_web_manifest(args.import_web_manifest, args.sample_audio_dir)
+            target = library.save(output)
+        except (OSError, ValueError, EOFError, wave.Error) as exc:
+            parser.error(str(exc))
+        print(f"Imported {count} local sample(s); saved {target}")
+        return 0
+    if args.sample_audio_dir or args.sample_manifest_output:
+        parser.error("Sample migration options require --import-web-manifest")
 
     report = None
     if not raw_argv:

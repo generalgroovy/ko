@@ -482,6 +482,7 @@ class KO2DawApp:
         toolbar.grid(row=0, column=0, sticky="ew", pady=(0, 6))
         sample_buttons = (
             ("IMPORT WAV", self._import_wav, "Add WAV files to the local 999-slot sample library. This does not upload to the KO II."),
+            ("IMPORT WEB LIBRARY", self._import_web_library, "Merge a Web MIDI Lab manifest and its exported WAV files into free local slots."),
             ("PLAY LOCAL", self._play_selected_sample, "Preview the selected WAV through Windows audio."),
             ("STOP AUDIO", self._stop_audio, "Stop local WAV preview playback."),
             ("TRIGGER MIDI", self._trigger_selected_sample, "Trigger the pad note corresponding to the selected sample slot."),
@@ -489,13 +490,11 @@ class KO2DawApp:
         )
         for index, (text, command, tip) in enumerate(sample_buttons):
             button = tk.Button(toolbar, text=text, command=command, bg="#efeadf")
-            button.pack(side=tk.LEFT, padx=(0 if index == 0 else 4, 4))
+            button.grid(row=index // 3, column=index % 3, sticky="ew", padx=(0, 6), pady=(0, 4))
             self._tip(button, tip)
         self.sample_status = tk.StringVar(value=f"0 / {MAX_SAMPLE_SLOTS} slots")
         sample_status = tk.Label(toolbar, textvariable=self.sample_status, bg="#d8d4c8", font=("Segoe UI", 10, "bold"))
-        sample_status.pack(
-            side=tk.RIGHT
-        )
+        sample_status.grid(row=2, column=0, columnspan=3, sticky="w")
         self._tip(sample_status, "Number of populated local sample slots out of the KO II-style 999-slot table.")
 
         columns = ("slot", "name", "duration", "rate", "channels", "bits", "size", "path")
@@ -1042,6 +1041,24 @@ class KO2DawApp:
                 self._log(f"sample import failed: {Path(path).name}: {exc}")
         self._refresh_sample_tree()
         self._set_action(f"imported {imported} wav sample(s)")
+
+    def _import_web_library(self) -> None:
+        manifest = filedialog.askopenfilename(
+            title="Import Web MIDI Lab manifest",
+            filetypes=(("JSON manifest", "*.json"),),
+        )
+        if not manifest:
+            return
+        audio_directory = filedialog.askdirectory(title="Choose folder containing exported WAV files")
+        if not audio_directory:
+            return
+        try:
+            count = self.sample_library.import_web_manifest(manifest, audio_directory)
+        except Exception as exc:
+            messagebox.showerror("KO II Samples", str(exc))
+            return
+        self._refresh_sample_tree()
+        self._set_action(f"imported {count} web library sample(s)")
 
     def _refresh_sample_tree(self) -> None:
         for item in self.sample_tree.get_children():

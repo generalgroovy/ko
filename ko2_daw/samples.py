@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 import json
 from pathlib import Path
+import re
 import sys
 import tempfile
 import wave
@@ -55,6 +56,48 @@ class SampleLibrary:
 
     def ordered(self) -> list[LocalSample]:
         return [self.samples[slot] for slot in sorted(self.samples)]
+
+    def import_web_manifest(self, path: str | Path, audio_directory: str | Path) -> int:
+        """Merge a Web MIDI Lab export using its separately exported local WAVs.
+
+        Validate the entire batch before replacing any state. Browser metadata is
+        descriptive only: timing and format always come from the actual WAV.
+        """
+        data = json.loads(Path(path).read_text(encoding="utf-8-sig"))
+        if not isinstance(data, dict) or not isinstance(data.get("samples"), list):
+            raise ValueError("Web manifest must contain a samples array.")
+        if data.get("schema"):
+            raise ValueError("Expected a Web MIDI Lab export, not a desktop manifest.")
+        entries = data["samples"]
+        free_slots = [slot for slot in range(MAX_SAMPLE_SLOTS) if slot not in self.samples]
+        if len(entries) > len(free_slots):
+            raise ValueError("Not enough free sample slots for this manifest.")
+        root = Path(audio_directory).resolve(strict=True)
+        if not root.is_dir():
+            raise ValueError("Audio directory must be a folder containing exported WAVs.")
+        imported = []
+        seen_paths = {Path(sample.path).resolve() for sample in self.samples.values()}
+        for index, (entry, slot) in enumerate(zip(entries, free_slots), start=1):
+            if not isinstance(entry, dict):
+                raise ValueError(f"Sample {index} must be an object.")
+            name = entry.get("name")
+            if not isinstance(name, str) or not name.strip():
+                raise ValueError(f"Sample {index} must have a nonempty name.")
+            # Match audio.js safeName used by the browser's WAV download button.
+            filename = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", name)
+            filename = re.sub(r"\s+", " ", filename).strip() + ".wav"
+            source = (root / filename).resolve()
+            if not source.is_relative_to(root):
+                raise ValueError(f"Sample {index} resolves outside the audio directory.")
+            if source in seen_paths:
+                raise ValueError(f"Duplicate WAV for sample {index}: {filename}")
+            if not source.is_file():
+                raise ValueError(f"Missing exported WAV for sample {index}: {filename}")
+            sample = read_wav_metadata(source, slot)
+            imported.append(replace(sample, name=name.strip()))
+            seen_paths.add(source)
+        self.samples.update({sample.slot: sample for sample in imported})
+        return len(imported)
 
     def to_manifest(self) -> dict[str, object]:
         return {
