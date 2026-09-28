@@ -5,6 +5,7 @@ from __future__ import annotations
 import queue
 import threading
 import time
+import wave
 from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -1120,7 +1121,7 @@ class KO2DawApp:
             return
         try:
             restored = SampleLibrary.load(path)
-        except Exception as exc:
+        except (OSError, ValueError, wave.Error, EOFError) as exc:
             messagebox.showerror("KO II Samples", str(exc))
             return
         if self.sample_library.samples and not messagebox.askyesno(
@@ -1139,7 +1140,7 @@ class KO2DawApp:
             return
         try:
             path = self.sample_library.save(target)
-        except Exception as exc:
+        except OSError as exc:
             messagebox.showerror("KO II Samples", str(exc))
             return
         self._set_action(f"saved {path.name}")

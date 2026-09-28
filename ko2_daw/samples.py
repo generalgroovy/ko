@@ -129,7 +129,7 @@ class SampleLibrary:
         restored = cls()
         for index, entry in enumerate(entries, start=1):
             if not isinstance(entry, dict):
-                raise ValueError(f"Sample {index} must be an object.")
+                raise ValueError(f"Sample {index} must be an object.")  # noqa: TRY004 - invalid JSON value
             slot = entry.get("slot")
             _validate_slot(slot)
             if slot in restored.samples:
