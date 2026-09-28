@@ -43,6 +43,8 @@ Tool cards open the relevant windows. Stop playback before changing routing. Per
 2. Use **SAVE MANIFEST** and choose a JSON destination. The manifest saves slot/name/path information; it does not copy or embed audio.
 3. Use **OPEN MANIFEST** to restore that desktop table after restarting. Replacing a nonempty table asks for confirmation. Invalid manifests, duplicate slots or unavailable WAVs leave the current table unchanged.
 
+The table keeps its selected slot when refreshed and selects the first available sample otherwise. **PLAY LOCAL** and **TRIGGER MIDI** become available when a sample is selected. If a WAV batch is only partly valid, successful files remain imported and a warning identifies the skipped files.
+
 Keep referenced WAV files with your backup. Saved paths are normally absolute; relative paths in a manifest resolve from the manifest's folder. On open, WAV format and duration are read from the actual files. If files moved, restore their paths or update the manifest's paths before reopening. The library is not automatically saved or reopened at startup.
 
 For the older browser app, download every sample as WAV and export its JSON manifest. Keep the downloaded filenames together. In **Samples → IMPORT WEB LIBRARY**, choose the browser JSON and the WAV folder. This merges into free slots; it does not replace existing samples. A bad or incomplete batch changes nothing.

@@ -597,8 +597,12 @@ class KO2DawApp:
                 "Choose where to save the local sample table. WAV audio stays in its source files.",
             ),
         )
+        self.sample_selection_buttons = []
         for index, (text, command, tip) in enumerate(sample_buttons):
             button = tk.Button(toolbar, text=text, command=command, bg="#efeadf")
+            if text in {"PLAY LOCAL", "TRIGGER MIDI"}:
+                button.configure(state=tk.DISABLED)
+                self.sample_selection_buttons.append(button)
             button.grid(row=index // 3, column=index % 3, sticky="ew", padx=(0, 6), pady=(0, 4))
             self._tip(button, tip)
         self.sample_status = tk.StringVar(value=f"0 / {MAX_SAMPLE_SLOTS} slots")
@@ -613,6 +617,7 @@ class KO2DawApp:
 
         columns = ("slot", "name", "duration", "rate", "channels", "bits", "size", "path")
         self.sample_tree = ttk.Treeview(parent, columns=columns, show="headings", height=7)
+        self.sample_tree.bind("<<TreeviewSelect>>", self._update_sample_actions)
         headings = {
             "slot": "Slot",
             "name": "Name",
@@ -1313,6 +1318,7 @@ class KO2DawApp:
         if not paths:
             return
         imported = 0
+        failures = []
         for path in paths:
             try:
                 self.sample_library.add_wav(path)
@@ -1322,8 +1328,17 @@ class KO2DawApp:
                 Exception
             ) as exc:
                 self._log(f"sample import failed: {Path(path).name}: {exc}")
+                failures.append(f"{Path(path).name}: {exc}")
         self._refresh_sample_tree()
-        self._set_action(f"imported {imported} wav sample(s)")
+        self._set_action(
+            f"Imported {imported} WAV sample(s)"
+            + (f"; {len(failures)} skipped" if failures else "")
+        )
+        if failures:
+            details = "\n".join(failures[:5])
+            if len(failures) > 5:
+                details += f"\n…and {len(failures) - 5} more. See Log for details."
+            messagebox.showwarning("Some samples could not be imported", details)
 
     def _import_web_library(self) -> None:
         manifest = filedialog.askopenfilename(
@@ -1349,6 +1364,7 @@ class KO2DawApp:
         self._set_action(f"imported {count} web library sample(s)")
 
     def _refresh_sample_tree(self) -> None:
+        previous = self.sample_tree.selection()
         for item in self.sample_tree.get_children():
             self.sample_tree.delete(item)
         for sample in self.sample_library.ordered():
@@ -1368,6 +1384,18 @@ class KO2DawApp:
                 ),
             )
         self.sample_status.set(f"{len(self.sample_library.samples)} / {MAX_SAMPLE_SLOTS} slots")
+        rows = self.sample_tree.get_children()
+        selected = next((item for item in previous if item in rows), rows[0] if rows else None)
+        if selected is not None:
+            self.sample_tree.selection_set(selected)
+            self.sample_tree.focus(selected)
+            self.sample_tree.see(selected)
+        self._update_sample_actions()
+
+    def _update_sample_actions(self, _event=None) -> None:
+        state = tk.NORMAL if self.sample_tree.selection() else tk.DISABLED
+        for button in self.sample_selection_buttons:
+            button.configure(state=state)
 
     def _selected_sample(self):
         selected = self.sample_tree.selection()
