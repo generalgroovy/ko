@@ -29,6 +29,7 @@ from ko2_daw.midi import (
 )
 from ko2_daw.project_store import ProjectSnapshot, SafeProjectStore
 from ko2_daw.routing import KO2Route, resolve_ko2_route
+from ko2_daw.sample_editor import SampleEditor
 from ko2_daw.samples import MAX_SAMPLE_SLOTS, SampleLibrary, play_wav, stop_wav
 from ko2_daw.session import CompanionSessionStore, default_session
 from ko2_daw.state import KO2RuntimeState
@@ -587,6 +588,11 @@ class KO2DawApp:
             ),
             ("STOP AUDIO", self._stop_audio, "Stop local WAV preview playback."),
             (
+                "TRIM COPY",
+                self._edit_selected_sample,
+                "Select a waveform region and save a new WAV without changing the original.",
+            ),
+            (
                 "TRIGGER MIDI",
                 self._trigger_selected_sample,
                 "Trigger the pad note corresponding to the selected sample slot.",
@@ -600,7 +606,7 @@ class KO2DawApp:
         self.sample_selection_buttons = []
         for index, (text, command, tip) in enumerate(sample_buttons):
             button = tk.Button(toolbar, text=text, command=command, bg="#efeadf")
-            if text in {"PLAY LOCAL", "TRIGGER MIDI"}:
+            if text in {"PLAY LOCAL", "TRIGGER MIDI", "TRIM COPY"}:
                 button.configure(state=tk.DISABLED)
                 self.sample_selection_buttons.append(button)
             button.grid(row=index // 3, column=index % 3, sticky="ew", padx=(0, 6), pady=(0, 4))
@@ -1416,6 +1422,22 @@ class KO2DawApp:
             return
         self._set_action(f"local play slot {sample.slot}: {sample.name}")
 
+    def _edit_selected_sample(self) -> None:
+        sample = self._selected_sample()
+        if sample:
+            SampleEditor(self.root, sample.path, self._add_trimmed_sample)
+
+    def _add_trimmed_sample(self, path: Path) -> None:
+        try:
+            sample = self.sample_library.add_wav(path)
+        except (OSError, ValueError, wave.Error) as exc:
+            messagebox.showerror("Saved copy", f"The WAV was saved at {path}.\nLibrary: {exc}")
+            return
+        self._refresh_sample_tree()
+        self.sample_tree.selection_set(str(sample.slot))
+        self.sample_tree.see(str(sample.slot))
+        self._set_action(f"saved trimmed copy: {path.name}")
+
     def _stop_audio(self) -> None:
         stop_wav()
         self._set_action("local audio stop")
@@ -1999,6 +2021,10 @@ class KO2DawApp:
         )
 
     def _close(self) -> None:
+        for child in self.root.winfo_children():
+            if isinstance(child, SampleEditor) and child.saving:
+                messagebox.showinfo("Saving sample", "Wait for the WAV copy to finish before closing.")
+                return
         self._disconnect_live(silent=True)
         stop_wav()
         self.root.destroy()

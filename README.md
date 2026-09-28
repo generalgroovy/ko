@@ -28,7 +28,7 @@ python -m ko2_daw --list
 
 | Tool | Use it for | Saved/exported data |
 | --- | --- | --- |
-| Samples | Import, reopen and preview local WAV samples | JSON manifest referencing the WAV files |
+| Samples | Import, inspect, trim copies and preview local WAV samples | New PCM WAV copies; JSON manifest referencing WAV files |
 | Performance | Record MIDI input/app actions; quantize and loop | Editable JSON clip; format-0 MIDI export |
 | Sequence / Scene Arranger | Four group tracks, steps, automation and song chains | Editable JSON project; type-1 MIDI export |
 | Audio | Arrange WAV clips without changing their sources | JSON timeline; stereo WAV mixdown |
@@ -56,6 +56,10 @@ python -m ko2_daw --import-web-manifest ko2-local-samples.json --sample-audio-di
 ```
 
 [Migration format, limits and capability comparison](docs/web-library-migration.md)
+
+## Trim a sample copy
+
+Select a local WAV, then **TRIM COPY**. Choose Start or End and click or drag on the waveform, or enter exact seconds. **Save trimmed copy** writes a new PCM WAV and adds it to the local library. Rate, channels and sample width are preserved; existing files cannot be replaced. Play the new row to audition it, then save the manifest. The original file is unchanged and no sample is uploaded to the device. Long file operations run in the background; finish an export before closing the app.
 
 ## Local data and recovery
 
