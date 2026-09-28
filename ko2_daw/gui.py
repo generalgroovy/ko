@@ -2023,7 +2023,9 @@ class KO2DawApp:
     def _close(self) -> None:
         for child in self.root.winfo_children():
             if isinstance(child, SampleEditor) and child.saving:
-                messagebox.showinfo("Saving sample", "Wait for the WAV copy to finish before closing.")
+                messagebox.showinfo(
+                    "Saving sample", "Wait for the WAV copy to finish before closing."
+                )
                 return
         self._disconnect_live(silent=True)
         stop_wav()
