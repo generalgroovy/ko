@@ -119,8 +119,32 @@ class SampleLibrary:
 
     @classmethod
     def load(cls, path: str | Path) -> "SampleLibrary":
-        data = json.loads(Path(path).read_text(encoding="utf-8"))
-        return cls([LocalSample(**sample) for sample in data.get("samples", [])])
+        source = Path(path).resolve()
+        data = json.loads(source.read_text(encoding="utf-8-sig"))
+        if not isinstance(data, dict) or data.get("schema") != "ko2-sampler-daw.sample-manifest.v1":
+            raise ValueError("Choose a desktop sample manifest. Use IMPORT WEB LIBRARY for browser exports.")
+        entries = data.get("samples")
+        if not isinstance(entries, list) or len(entries) > MAX_SAMPLE_SLOTS:
+            raise ValueError("Desktop manifest must contain at most 999 samples.")
+        restored = cls()
+        for index, entry in enumerate(entries, start=1):
+            if not isinstance(entry, dict):
+                raise ValueError(f"Sample {index} must be an object.")
+            slot = entry.get("slot")
+            _validate_slot(slot)
+            if slot in restored.samples:
+                raise ValueError(f"Duplicate sample slot: {slot}")
+            name, filename = entry.get("name"), entry.get("path")
+            if not isinstance(name, str) or not name.strip() or not isinstance(filename, str) or not filename.strip():
+                raise ValueError(f"Sample {index} needs a name and WAV path.")
+            audio = Path(filename)
+            if not audio.is_absolute():
+                audio = source.parent / audio
+            # The WAV is authoritative; stale or edited format metadata cannot
+            # create a misleading sample table. Build a new library atomically.
+            sample = read_wav_metadata(audio, slot)
+            restored.add(replace(sample, name=name))
+        return restored
 
 
 def read_wav_metadata(path: str | Path, slot: int) -> LocalSample:
@@ -164,5 +188,5 @@ def stop_wav() -> None:
 
 
 def _validate_slot(slot: int) -> None:
-    if not 0 <= slot < MAX_SAMPLE_SLOTS:
+    if type(slot) is not int or not 0 <= slot < MAX_SAMPLE_SLOTS:
         raise ValueError(f"Sample slot must be between 0 and {MAX_SAMPLE_SLOTS - 1}.")

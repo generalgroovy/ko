@@ -35,6 +35,12 @@ selected WAV folder available for playback. The CLI creates a new desktop
 manifest and refuses to overwrite an existing output; the GUI merges into the
 current library, which can then be saved with **SAVE MANIFEST**.
 
+Choose a destination when saving, then use **OPEN MANIFEST** to restore that
+desktop library later. Opening validates every referenced WAV before replacing
+the current library and asks before replacing a nonempty library. Desktop
+manifests store references, not audio: back up the JSON and its WAV files
+together. Relative WAV paths resolve from the desktop manifest's folder.
+
 ## Verification boundary
 
 Migration is tested with generated PCM WAVs and browser-shaped manifests,

@@ -483,10 +483,11 @@ class KO2DawApp:
         sample_buttons = (
             ("IMPORT WAV", self._import_wav, "Add WAV files to the local 999-slot sample library. This does not upload to the KO II."),
             ("IMPORT WEB LIBRARY", self._import_web_library, "Merge a Web MIDI Lab manifest and its exported WAV files into free local slots."),
+            ("OPEN MANIFEST", self._open_sample_manifest, "Restore a saved desktop sample table. Referenced WAV files must still be available."),
             ("PLAY LOCAL", self._play_selected_sample, "Preview the selected WAV through Windows audio."),
             ("STOP AUDIO", self._stop_audio, "Stop local WAV preview playback."),
             ("TRIGGER MIDI", self._trigger_selected_sample, "Trigger the pad note corresponding to the selected sample slot."),
-            ("SAVE MANIFEST", self._save_sample_manifest, "Save the local sample table to daw_projects/sample_manifest.json."),
+            ("SAVE MANIFEST", self._save_sample_manifest, "Choose where to save the local sample table. WAV audio stays in its source files."),
         )
         for index, (text, command, tip) in enumerate(sample_buttons):
             button = tk.Button(toolbar, text=text, command=command, bg="#efeadf")
@@ -494,7 +495,7 @@ class KO2DawApp:
             self._tip(button, tip)
         self.sample_status = tk.StringVar(value=f"0 / {MAX_SAMPLE_SLOTS} slots")
         sample_status = tk.Label(toolbar, textvariable=self.sample_status, bg="#d8d4c8", font=("Segoe UI", 10, "bold"))
-        sample_status.grid(row=2, column=0, columnspan=3, sticky="w")
+        sample_status.grid(row=(len(sample_buttons) + 2) // 3, column=0, columnspan=3, sticky="w")
         self._tip(sample_status, "Number of populated local sample slots out of the KO II-style 999-slot table.")
 
         columns = ("slot", "name", "duration", "rate", "channels", "bits", "size", "path")
@@ -1113,8 +1114,34 @@ class KO2DawApp:
         self.group.set(group)
         self._trigger_pad(pad)
 
+    def _open_sample_manifest(self) -> None:
+        path = filedialog.askopenfilename(title="Open desktop sample manifest", filetypes=(("JSON manifest", "*.json"),))
+        if not path:
+            return
+        try:
+            restored = SampleLibrary.load(path)
+        except Exception as exc:
+            messagebox.showerror("KO II Samples", str(exc))
+            return
+        if self.sample_library.samples and not messagebox.askyesno(
+            "Replace local sample table?", "Opening this manifest replaces the current local table. Save it first if you need to keep it. Continue?"
+        ):
+            return
+        self.sample_library = restored
+        self._refresh_sample_tree()
+        self._set_action(f"opened {len(restored.samples)} local sample(s)")
+
     def _save_sample_manifest(self) -> None:
-        path = self.sample_library.save(self.project_root / "sample_manifest.json")
+        target = filedialog.asksaveasfilename(title="Save desktop sample manifest", initialdir=self.project_root,
+                                            initialfile="sample_manifest.json", defaultextension=".json",
+                                            filetypes=(("JSON manifest", "*.json"),))
+        if not target:
+            return
+        try:
+            path = self.sample_library.save(target)
+        except Exception as exc:
+            messagebox.showerror("KO II Samples", str(exc))
+            return
         self._set_action(f"saved {path.name}")
         messagebox.showinfo("KO II Samples", f"Saved sample manifest:\n{path}")
 
