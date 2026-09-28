@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import tkinter.font as tkfont
-from typing import Any, Callable
-
+from collections.abc import Callable
+from typing import Any
 
 BG = "#d8d7d4"
 CARD = "#e9e7e3"
@@ -42,7 +42,6 @@ def apply_modern_shell_patch(gui_module: Any) -> None:
 
     tk = gui_module.tk
     ttk = gui_module.ttk
-    messagebox = gui_module.messagebox
     original_init = app_class.__init__
 
     def __init__(self, root) -> None:
@@ -286,9 +285,7 @@ def apply_modern_shell_patch(gui_module: Any) -> None:
             subtitle_widget.pack(fill=tk.X, pady=(2, 0))
             command = getattr(self, method_name, None)
             if not callable(command):
-                command = lambda name=title: self._set_action(
-                    f"{name.lower()} unavailable"
-                )
+                command = lambda name=title: self._set_action(f"{name.lower()} unavailable")
             for widget in (card, marker, text, title_widget, subtitle_widget):
                 widget.bind(
                     "<Button-1>",
@@ -296,15 +293,11 @@ def apply_modern_shell_patch(gui_module: Any) -> None:
                 )
             card.bind(
                 "<Enter>",
-                lambda _event, target=card: target.configure(
-                    highlightbackground=ACCENT
-                ),
+                lambda _event, target=card: target.configure(highlightbackground=ACCENT),
             )
             card.bind(
                 "<Leave>",
-                lambda _event, target=card: target.configure(
-                    highlightbackground=LINE
-                ),
+                lambda _event, target=card: target.configure(highlightbackground=LINE),
             )
             self._tip(card, f"{title}: {subtitle}.")
             setattr(self, f"modern_tool_{key}", card)
@@ -937,9 +930,7 @@ def _device_button(
         command=command,
         bg=bg,
         fg=fg,
-        activebackground=(
-            ACCENT if accent else (KEY_DARK_ACTIVE if dark else KEY_LIGHT_ACTIVE)
-        ),
+        activebackground=(ACCENT if accent else (KEY_DARK_ACTIVE if dark else KEY_LIGHT_ACTIVE)),
         activeforeground="#ffffff" if accent else fg,
         font=("Segoe UI", font_size, "bold"),
         relief=tk.RAISED,

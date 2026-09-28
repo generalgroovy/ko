@@ -75,14 +75,10 @@ def test_polymetric_scene_and_song_chain_repeat() -> None:
 
     assert length == 16
     a_notes = [
-        event.beat
-        for event in events
-        if event.track == "A" and event.message.kind == "note_on"
+        event.beat for event in events if event.track == "A" and event.message.kind == "note_on"
     ]
     b_notes = [
-        event.beat
-        for event in events
-        if event.track == "B" and event.message.kind == "note_on"
+        event.beat for event in events if event.track == "B" and event.message.kind == "note_on"
     ]
     assert a_notes == [0.0, 4.0, 8.0, 12.0]
     assert b_notes == [0.0, 8.0]

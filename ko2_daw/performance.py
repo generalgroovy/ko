@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import json
+from dataclasses import dataclass, field
 from pathlib import Path
 from time import monotonic
 
 from ko2_daw.io_utils import atomic_write_bytes, atomic_write_text
 from ko2_daw.midi import MidiMessage
 from ko2_daw.protocol_recorder import midi_message_from_dict, midi_message_to_dict
-
 
 PLAYABLE_KINDS = {"note_on", "note_off", "control_change", "program_change"}
 
@@ -29,9 +28,10 @@ class PerformanceEvent:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, object]) -> "PerformanceEvent":
+    def from_dict(cls, data: dict[str, object]) -> PerformanceEvent:
         message = data.get("message")
         if not isinstance(message, dict):
+            # ruff: ignore[TRY004] Invalid serialized data preserves the public ValueError contract.
             raise ValueError("performance event message must be an object")
         return cls(
             beat=float(data.get("beat", 0.0)),
@@ -60,19 +60,24 @@ class PerformanceClip:
             "name": self.name,
             "bpm": self.bpm,
             "loop_beats": self.loop_beats,
-            "events": [event.to_dict() for event in sorted(self.events, key=lambda item: item.beat)],
+            "events": [
+                event.to_dict() for event in sorted(self.events, key=lambda item: item.beat)
+            ],
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, object]) -> "PerformanceClip":
+    def from_dict(cls, data: dict[str, object]) -> PerformanceClip:
         raw_events = data.get("events") or []
         if not isinstance(raw_events, list):
+            # ruff: ignore[TRY004] Invalid serialized data preserves the public ValueError contract.
             raise ValueError("performance clip events must be an array")
         clip = cls(
             name=str(data.get("name", "EP-133 Performance")),
             bpm=float(data.get("bpm", 120.0)),
             loop_beats=float(data.get("loop_beats", 4.0)),
-            events=[PerformanceEvent.from_dict(event) for event in raw_events if isinstance(event, dict)],
+            events=[
+                PerformanceEvent.from_dict(event) for event in raw_events if isinstance(event, dict)
+            ],
         )
         clip.validate()
         clip.events.sort(key=lambda item: item.beat)
@@ -91,7 +96,9 @@ class PerformanceRecorder:
         self._undo: list[list[PerformanceEvent]] = []
         self._redo: list[list[PerformanceEvent]] = []
 
-    def start(self, *, bpm: float | None = None, overdub: bool = False, now: float | None = None) -> None:
+    def start(
+        self, *, bpm: float | None = None, overdub: bool = False, now: float | None = None
+    ) -> None:
         if bpm is not None:
             self.clip.bpm = float(bpm)
         self.clip.validate()
@@ -195,9 +202,10 @@ class PerformanceRecorder:
         return atomic_write_text(path, payload)
 
     @classmethod
-    def load(cls, path: str | Path) -> "PerformanceRecorder":
+    def load(cls, path: str | Path) -> PerformanceRecorder:
         raw = json.loads(Path(path).read_text(encoding="utf-8"))
         if not isinstance(raw, dict):
+            # ruff: ignore[TRY004] Invalid serialized data preserves the public ValueError contract.
             raise ValueError("performance clip must be a JSON object")
         return cls(PerformanceClip.from_dict(raw))
 
@@ -231,10 +239,7 @@ class PerformanceRecorder:
 
     @staticmethod
     def _clone_events(events: list[PerformanceEvent]) -> list[PerformanceEvent]:
-        return [
-            PerformanceEvent(event.beat, event.source, dict(event.message))
-            for event in events
-        ]
+        return [PerformanceEvent(event.beat, event.source, dict(event.message)) for event in events]
 
 
 def _encode_channel_message(message: MidiMessage | None) -> bytes:
@@ -242,11 +247,17 @@ def _encode_channel_message(message: MidiMessage | None) -> bytes:
         return b""
     channel = int(message.channel or 0) & 0x0F
     if message.kind == "note_on":
-        return bytes([0x90 | channel, int(message.note or 0) & 0x7F, int(message.velocity or 0) & 0x7F])
+        return bytes(
+            [0x90 | channel, int(message.note or 0) & 0x7F, int(message.velocity or 0) & 0x7F]
+        )
     if message.kind == "note_off":
-        return bytes([0x80 | channel, int(message.note or 0) & 0x7F, int(message.velocity or 0) & 0x7F])
+        return bytes(
+            [0x80 | channel, int(message.note or 0) & 0x7F, int(message.velocity or 0) & 0x7F]
+        )
     if message.kind == "control_change":
-        return bytes([0xB0 | channel, int(message.control or 0) & 0x7F, int(message.value or 0) & 0x7F])
+        return bytes(
+            [0xB0 | channel, int(message.control or 0) & 0x7F, int(message.value or 0) & 0x7F]
+        )
     if message.kind == "program_change":
         return bytes([0xC0 | channel, int(message.program or 0) & 0x7F])
     return b""

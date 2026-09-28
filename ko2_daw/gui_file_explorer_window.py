@@ -24,7 +24,9 @@ def apply_file_explorer_window_patch(gui_module: Any) -> None:
         original_build_menu(self)
         menu = self.root.nametowidget(self.root.cget("menu"))
         files = tk.Menu(menu, tearoff=False)
-        files.add_command(label="Open Compact Device Explorer", command=self._show_device_file_explorer)
+        files.add_command(
+            label="Open Compact Device Explorer", command=self._show_device_file_explorer
+        )
         files.add_command(
             label="Scan Device Files",
             command=lambda: self._scan_complete_device_tree(auto=False),
@@ -63,7 +65,9 @@ def apply_file_explorer_window_patch(gui_module: Any) -> None:
         shell.columnconfigure(0, weight=1)
         shell.rowconfigure(0, weight=1)
         columns = ("kind", "node", "size")
-        self.file_explorer_tree = ttk.Treeview(shell, columns=columns, show="tree headings", height=28)
+        self.file_explorer_tree = ttk.Treeview(
+            shell, columns=columns, show="tree headings", height=28
+        )
         self.file_explorer_tree.heading("#0", text="Name")
         self.file_explorer_tree.column("#0", width=270, anchor="w", stretch=True)
         for column, width in (("kind", 55), ("node", 65), ("size", 75)):
@@ -75,7 +79,9 @@ def apply_file_explorer_window_patch(gui_module: Any) -> None:
         self.file_explorer_tree.grid(row=0, column=0, sticky="nsew")
         y_scroll.grid(row=0, column=1, sticky="ns")
         x_scroll.grid(row=1, column=0, sticky="ew")
-        self.file_explorer_tree.bind("<Double-1>", lambda _event: self._file_explorer_double_click())
+        self.file_explorer_tree.bind(
+            "<Double-1>", lambda _event: self._file_explorer_double_click()
+        )
         self._rebuild_file_explorer_from_hardware_tree()
 
     def _file_explorer_double_click(self) -> None:
@@ -88,7 +94,9 @@ def apply_file_explorer_window_patch(gui_module: Any) -> None:
         values = self.file_explorer_tree.item(item, "values")
         kind = values[0] if values else ""
         if kind == "dir":
-            self.file_explorer_tree.item(item, open=not bool(self.file_explorer_tree.item(item, "open")))
+            self.file_explorer_tree.item(
+                item, open=not bool(self.file_explorer_tree.item(item, "open"))
+            )
             self._select_matching_hardware_item(item)
             self._probe_selected_node()
             return

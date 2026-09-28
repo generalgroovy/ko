@@ -30,7 +30,9 @@ def apply_midi_detection_patch(gui_module: Any) -> None:
         self._refresh_ports()
         self._log(self._midi_detection_summary())
         if hasattr(self, "_record_protocol"):
-            self._record_protocol("app", "midi-detection", "refreshed", self._midi_detection_summary())
+            self._record_protocol(
+                "app", "midi-detection", "refreshed", self._midi_detection_summary()
+            )
 
     def _connect_live(self, route=None, *, auto_detected: bool = False) -> None:
         if route is None:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 from typing import Any
 
@@ -52,7 +53,9 @@ def apply_segment_grid_patch(gui_module: Any) -> None:
         self._install_segment_tab(parent)
 
     def _install_segment_tab(self, parent) -> None:
-        notebooks = [child for child in parent.winfo_children() if child.winfo_class() == "TNotebook"]
+        notebooks = [
+            child for child in parent.winfo_children() if child.winfo_class() == "TNotebook"
+        ]
         if not notebooks:
             return
         notebook = notebooks[-1]
@@ -67,7 +70,9 @@ def apply_segment_grid_patch(gui_module: Any) -> None:
         header = tk.Frame(parent, bg=SegmentPalette.bg)
         header.grid(row=0, column=0, sticky="ew", pady=(0, 6))
         header.columnconfigure(1, weight=1)
-        tk.Button(header, text="SCAN DEVICE", command=lambda: self._scan_complete_device_tree(auto=False)).grid(
+        tk.Button(
+            header, text="SCAN DEVICE", command=lambda: self._scan_complete_device_tree(auto=False)
+        ).grid(
             row=0,
             column=0,
             padx=(0, 6),
@@ -126,7 +131,9 @@ def apply_segment_grid_patch(gui_module: Any) -> None:
             self.song_timeline.select_track(group)
         self._set_action(f"selected {group}{number}")
         if hasattr(self, "_record_protocol"):
-            self._record_protocol("app", "segment-select", f"{group}{number}", "selected in segment grid")
+            self._record_protocol(
+                "app", "segment-select", f"{group}{number}", "selected in segment grid"
+            )
         self._refresh_segment_grid()
 
     def _add_hardware_entry(self, kind: str, node: str, name: str, size: str, status: str) -> None:
@@ -138,7 +145,9 @@ def apply_segment_grid_patch(gui_module: Any) -> None:
                 if selected:
                     path = selected[0]
         except Exception:
-            pass
+            logging.getLogger(__name__).debug(
+                "A stale optional selection must not discard the new file entry.", exc_info=True
+            )
         slot = self.segment_bank.ingest_file_entry(
             path=path,
             kind=kind,
@@ -202,7 +211,9 @@ def apply_segment_grid_patch(gui_module: Any) -> None:
         if message.kind == "note_on" and message.note is not None and message.velocity:
             step = int(self.runtime_state.clock_ticks % 64)
             component = f"note {message.note} vel {message.velocity}"
-            self.segment_bank.mark_midi_note(int(message.note), step, component, evidence="incoming MIDI")
+            self.segment_bank.mark_midi_note(
+                int(message.note), step, component, evidence="incoming MIDI"
+            )
 
     def _refresh_segment_grid(self) -> None:
         if not getattr(self, "segment_buttons", None):

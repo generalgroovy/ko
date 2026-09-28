@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 import threading
+from datetime import datetime
 from typing import Any
 
 MAX_PROTOCOL_RECORDS = 2000
@@ -90,6 +90,7 @@ def apply_protocol_window_patch(gui_module: Any) -> None:
         self.protocol_next_id += 1
         record = {
             "id": record_id,
+            # ruff: ignore[DTZ005] Preserve the existing local timestamp schema.
             "time": datetime.now().isoformat(timespec="milliseconds"),
             "direction": direction,
             "kind": kind,
@@ -142,7 +143,9 @@ def apply_protocol_window_patch(gui_module: Any) -> None:
         if not selected:
             return None
         selected_id = selected[0]
-        return next((record for record in self.protocol_records if record["id"] == selected_id), None)
+        return next(
+            (record for record in self.protocol_records if record["id"] == selected_id), None
+        )
 
     def _show_protocol_detail(self) -> None:
         if not self.protocol_tree or not self.protocol_detail:
@@ -206,7 +209,9 @@ def apply_protocol_window_patch(gui_module: Any) -> None:
             pending = list(self.protocol_pending_input)
             self.protocol_pending_input.clear()
         for message in pending:
-            self._record_protocol("device -> app", message.kind, message.display(), _message_raw(message))
+            self._record_protocol(
+                "device -> app", message.kind, message.display(), _message_raw(message)
+            )
         original_drain_input_queue(self)
 
     def _run_sysex_probe(self, name: str, frame: bytes) -> None:

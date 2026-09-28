@@ -83,10 +83,15 @@ Historical physical-device verification was recorded on **2026-06-11**, not duri
 
 ```powershell
 python -m pip install -e ".[dev]"
+python -m compileall -q ko2_daw
+python -m ruff check .
+python -m black --check .
 python -m pytest
 ```
 
 The suite covers dry-run behavior, protocols, transfer integrity, project formats, GUI plugin wiring and library migration/recovery. Test outputs use `.pytest_tmp`; use a unique `--basetemp` if running separate suites concurrently. No test pass establishes physical MIDI/audio operation.
+
+The dev extra pins the same Ruff and Black versions used by CI; formatting targets Python 3.11. General CI runs compilation, lint, formatting and tests on every push and pull request. Specific inline lint exceptions document intentional GUI/worker recovery boundaries, serialized-data exception contracts and existing timestamp formats; keep those behaviors when changing the surrounding code.
 
 For a Windows package, run **build_exe.bat**. Keep the complete `dist\KO2-DAW` folder together. CI's Windows packaging artifact is named `KO2-DAW-windows`; check that workflow's result before treating a package as verified.
 

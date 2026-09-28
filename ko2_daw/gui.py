@@ -5,15 +5,28 @@ from __future__ import annotations
 import queue
 import threading
 import time
+import tkinter as tk
 import wave
 from pathlib import Path
-import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-from ko2_daw.config import APP_ACCESS_MODES, AppSettings, DAWConfig, DeviceSafetyConfig, load_app_settings, save_app_settings
+from ko2_daw.config import (
+    APP_ACCESS_MODES,
+    AppSettings,
+    DAWConfig,
+    DeviceSafetyConfig,
+    load_app_settings,
+    save_app_settings,
+)
 from ko2_daw.controller import DAWController
 from ko2_daw.diagnostics import readiness_report
-from ko2_daw.midi import DryRunMidiBackend, MidiMessage, WinMMInputMonitor, WinMMMidiBackend, midi_capability_report
+from ko2_daw.midi import (
+    DryRunMidiBackend,
+    MidiMessage,
+    WinMMInputMonitor,
+    WinMMMidiBackend,
+    midi_capability_report,
+)
 from ko2_daw.project_store import ProjectSnapshot, SafeProjectStore
 from ko2_daw.routing import KO2Route, resolve_ko2_route
 from ko2_daw.samples import MAX_SAMPLE_SLOTS, SampleLibrary, play_wav, stop_wav
@@ -35,7 +48,6 @@ from ko2_daw.te_sysex import (
     self_test_packing,
     set_experimental_write_enabled,
 )
-
 
 PAD_NOTES = {
     "A": list(range(36, 48)),
@@ -149,7 +161,9 @@ class KO2DawApp:
         self.sysex_enabled_setting = tk.BooleanVar(value=self.app_settings.sysex_enabled)
         self.auto_scan_setting = tk.BooleanVar(value=self.app_settings.auto_scan_on_connect)
         self.file_playback_setting = tk.BooleanVar(value=self.app_settings.allow_file_playback)
-        self.playback_confirm_setting = tk.BooleanVar(value=self.app_settings.require_playback_confirmation)
+        self.playback_confirm_setting = tk.BooleanVar(
+            value=self.app_settings.require_playback_confirmation
+        )
         self.sysex_timeout_setting = tk.StringVar(value=str(self.app_settings.sysex_timeout_sec))
         self.max_sysex_bytes_setting = tk.StringVar(value=str(self.app_settings.max_sysex_bytes))
         self.scan_pages_setting = tk.StringVar(value=str(self.app_settings.scan_pages_per_dir))
@@ -209,7 +223,10 @@ class KO2DawApp:
             anchor="w",
         )
         title.grid(row=0, column=0, sticky="ew")
-        self._tip(title, "Main status display. This area mirrors the KO II-style screen: route, last action, and inferred state.")
+        self._tip(
+            title,
+            "Main status display. This area mirrors the KO II-style screen: route, last action, and inferred state.",
+        )
 
         state = tk.Label(
             display,
@@ -221,7 +238,10 @@ class KO2DawApp:
             pady=4,
         )
         state.grid(row=0, column=1, sticky="e")
-        self._tip(state, "Current output mode. DRY RUN means no hardware MIDI is sent; LIVE EP-133 means controls are routed to the connected KO II.")
+        self._tip(
+            state,
+            "Current output mode. DRY RUN means no hardware MIDI is sent; LIVE EP-133 means controls are routed to the connected KO II.",
+        )
 
         self.port_label = tk.Label(
             display,
@@ -232,7 +252,10 @@ class KO2DawApp:
             justify=tk.LEFT,
         )
         self.port_label.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(8, 0))
-        self._tip(self.port_label, "Detected MIDI inputs, outputs, USB status, and whether the EP-133 appears as a MIDI endpoint.")
+        self._tip(
+            self.port_label,
+            "Detected MIDI inputs, outputs, USB status, and whether the EP-133 appears as a MIDI endpoint.",
+        )
 
         action = tk.Label(
             display,
@@ -254,7 +277,10 @@ class KO2DawApp:
             justify=tk.LEFT,
         )
         self.state_label.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(8, 0))
-        self._tip(self.state_label, "Best-effort runtime mirror inferred from MIDI traffic: transport, active notes, clock ticks, and mod wheel.")
+        self._tip(
+            self.state_label,
+            "Best-effort runtime mirror inferred from MIDI traffic: transport, active notes, clock ticks, and mod wheel.",
+        )
         self._refresh_state_label()
 
     def _build_mode_strip(self, parent: tk.Frame) -> None:
@@ -310,7 +336,10 @@ class KO2DawApp:
                 command=lambda value=group: self._set_action(f"group {value}"),
             )
             button.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=3)
-            self._tip(button, f"Select KO II group {group}. Pads in this group map to MIDI notes {PAD_NOTES[group][0]}-{PAD_NOTES[group][-1]}.")
+            self._tip(
+                button,
+                f"Select KO II group {group}. Pads in this group map to MIDI notes {PAD_NOTES[group][0]}-{PAD_NOTES[group][-1]}.",
+            )
 
     def _build_pads(self, parent: tk.Frame) -> None:
         pad_frame = tk.Frame(parent, bg="#bdb7aa", padx=10, pady=10)
@@ -377,7 +406,9 @@ class KO2DawApp:
         header = tk.Label(panel, text="PARAMETERS", bg="#c9c4b8", font=("Segoe UI", 11, "bold"))
         header.pack(fill=tk.X)
         self._tip(header, "Session parameters and connection controls.")
-        session_label = tk.Label(panel, textvariable=self.session_status, bg="#c9c4b8", wraplength=210, justify=tk.LEFT)
+        session_label = tk.Label(
+            panel, textvariable=self.session_status, bg="#c9c4b8", wraplength=210, justify=tk.LEFT
+        )
         session_label.pack(
             fill=tk.X,
             pady=(0, 8),
@@ -402,28 +433,75 @@ class KO2DawApp:
         )
         fader.set(96)
         fader.pack(pady=4)
-        self._tip(fader, "Send or preview mod wheel values. Live mode sends CC 1 to EP-133; dry-run records it locally.")
+        self._tip(
+            fader,
+            "Send or preview mod wheel values. Live mode sends CC 1 to EP-133; dry-run records it locally.",
+        )
 
         button_specs = (
-            ("SAVE", self._save_project, "#efeadf", "Save the current GUI activity/session snapshot under daw_projects."),
-            ("SAVE SESSION", self._save_session, "#efeadf", "Save companion profile, routing, selected group, and BPM."),
-            ("CONNECT EP-133", self._connect_live, "#d7f58a", "Open the detected EP-133 MIDI input/output and enable live pad, transport, CC, and read-only SysEx controls."),
-            ("DISCONNECT", self._disconnect_live, "#efeadf", "Close live MIDI handles and return to dry-run mode."),
-            ("REFRESH MIDI", self._refresh_report, "#efeadf", "Rescan WinMM MIDI ports and EP-133 USB status."),
-            ("DOCTOR", self._show_doctor, "#efeadf", "Show route diagnostics and suggested setup actions."),
-            ("SYSEX LAB", self._show_sysex_lab, "#efeadf", "Show read-only SysEx frames and protocol safety status."),
+            (
+                "SAVE",
+                self._save_project,
+                "#efeadf",
+                "Save the current GUI activity/session snapshot under daw_projects.",
+            ),
+            (
+                "SAVE SESSION",
+                self._save_session,
+                "#efeadf",
+                "Save companion profile, routing, selected group, and BPM.",
+            ),
+            (
+                "CONNECT EP-133",
+                self._connect_live,
+                "#d7f58a",
+                "Open the detected EP-133 MIDI input/output and enable live pad, transport, CC, and read-only SysEx controls.",
+            ),
+            (
+                "DISCONNECT",
+                self._disconnect_live,
+                "#efeadf",
+                "Close live MIDI handles and return to dry-run mode.",
+            ),
+            (
+                "REFRESH MIDI",
+                self._refresh_report,
+                "#efeadf",
+                "Rescan WinMM MIDI ports and EP-133 USB status.",
+            ),
+            (
+                "DOCTOR",
+                self._show_doctor,
+                "#efeadf",
+                "Show route diagnostics and suggested setup actions.",
+            ),
+            (
+                "SYSEX LAB",
+                self._show_sysex_lab,
+                "#efeadf",
+                "Show read-only SysEx frames and protocol safety status.",
+            ),
         )
         for index, (text, command, color, tip) in enumerate(button_specs):
             button = tk.Button(panel, text=text, command=command, bg=color, height=1)
             button.pack(fill=tk.X, pady=(8 if index == 0 else 3, 0))
             self._tip(button, tip)
 
-        live_label = tk.Label(panel, textvariable=self.live_state, bg="#c9c4b8", fg="#7a1f16", font=("Segoe UI", 10, "bold"))
+        live_label = tk.Label(
+            panel,
+            textvariable=self.live_state,
+            bg="#c9c4b8",
+            fg="#7a1f16",
+            font=("Segoe UI", 10, "bold"),
+        )
         live_label.pack(
             fill=tk.X,
             pady=(10, 0),
         )
-        self._tip(live_label, "Resolved live route. Ready means a route is available; live means the route is currently open.")
+        self._tip(
+            live_label,
+            "Resolved live route. Ready means a route is available; live means the route is currently open.",
+        )
 
     def _dial(
         self,
@@ -450,7 +528,9 @@ class KO2DawApp:
         )
         scale.pack(fill=tk.X)
         if label == "X":
-            tip = "Set session BPM. Transport clock commands use this value when clocking is enabled."
+            tip = (
+                "Set session BPM. Transport clock commands use this value when clocking is enabled."
+            )
         else:
             tip = "Set pad trigger velocity for note-on messages."
         self._tip(label_widget, tip)
@@ -460,7 +540,10 @@ class KO2DawApp:
         tabs = ttk.Notebook(parent)
         self.workspace_tabs = tabs
         tabs.grid(row=3, column=0, columnspan=2, sticky="nsew", pady=(8, 0))
-        self._tip(tabs, "Lower workspace. Use Samples for local audio, Hardware Files for EP-133 browsing/playback, Settings for access policy, and Log for activity.")
+        self._tip(
+            tabs,
+            "Lower workspace. Use Samples for local audio, Hardware Files for EP-133 browsing/playback, Settings for access policy, and Log for activity.",
+        )
 
         samples = tk.Frame(tabs, bg="#d8d4c8", padx=6, pady=6)
         hardware = tk.Frame(tabs, bg="#d8d4c8", padx=6, pady=6)
@@ -482,22 +565,51 @@ class KO2DawApp:
         toolbar = tk.Frame(parent, bg="#d8d4c8")
         toolbar.grid(row=0, column=0, sticky="ew", pady=(0, 6))
         sample_buttons = (
-            ("IMPORT WAV", self._import_wav, "Add WAV files to the local 999-slot sample library. This does not upload to the KO II."),
-            ("IMPORT WEB LIBRARY", self._import_web_library, "Merge a Web MIDI Lab manifest and its exported WAV files into free local slots."),
-            ("OPEN MANIFEST", self._open_sample_manifest, "Restore a saved desktop sample table. Referenced WAV files must still be available."),
-            ("PLAY LOCAL", self._play_selected_sample, "Preview the selected WAV through Windows audio."),
+            (
+                "IMPORT WAV",
+                self._import_wav,
+                "Add WAV files to the local 999-slot sample library. This does not upload to the KO II.",
+            ),
+            (
+                "IMPORT WEB LIBRARY",
+                self._import_web_library,
+                "Merge a Web MIDI Lab manifest and its exported WAV files into free local slots.",
+            ),
+            (
+                "OPEN MANIFEST",
+                self._open_sample_manifest,
+                "Restore a saved desktop sample table. Referenced WAV files must still be available.",
+            ),
+            (
+                "PLAY LOCAL",
+                self._play_selected_sample,
+                "Preview the selected WAV through Windows audio.",
+            ),
             ("STOP AUDIO", self._stop_audio, "Stop local WAV preview playback."),
-            ("TRIGGER MIDI", self._trigger_selected_sample, "Trigger the pad note corresponding to the selected sample slot."),
-            ("SAVE MANIFEST", self._save_sample_manifest, "Choose where to save the local sample table. WAV audio stays in its source files."),
+            (
+                "TRIGGER MIDI",
+                self._trigger_selected_sample,
+                "Trigger the pad note corresponding to the selected sample slot.",
+            ),
+            (
+                "SAVE MANIFEST",
+                self._save_sample_manifest,
+                "Choose where to save the local sample table. WAV audio stays in its source files.",
+            ),
         )
         for index, (text, command, tip) in enumerate(sample_buttons):
             button = tk.Button(toolbar, text=text, command=command, bg="#efeadf")
             button.grid(row=index // 3, column=index % 3, sticky="ew", padx=(0, 6), pady=(0, 4))
             self._tip(button, tip)
         self.sample_status = tk.StringVar(value=f"0 / {MAX_SAMPLE_SLOTS} slots")
-        sample_status = tk.Label(toolbar, textvariable=self.sample_status, bg="#d8d4c8", font=("Segoe UI", 10, "bold"))
+        sample_status = tk.Label(
+            toolbar, textvariable=self.sample_status, bg="#d8d4c8", font=("Segoe UI", 10, "bold")
+        )
         sample_status.grid(row=(len(sample_buttons) + 2) // 3, column=0, columnspan=3, sticky="w")
-        self._tip(sample_status, "Number of populated local sample slots out of the KO II-style 999-slot table.")
+        self._tip(
+            sample_status,
+            "Number of populated local sample slots out of the KO II-style 999-slot table.",
+        )
 
         columns = ("slot", "name", "duration", "rate", "channels", "bits", "size", "path")
         self.sample_tree = ttk.Treeview(parent, columns=columns, show="headings", height=7)
@@ -511,12 +623,24 @@ class KO2DawApp:
             "size": "Size",
             "path": "Path",
         }
-        widths = {"slot": 60, "name": 160, "duration": 90, "rate": 80, "channels": 50, "bits": 50, "size": 90, "path": 430}
+        widths = {
+            "slot": 60,
+            "name": 160,
+            "duration": 90,
+            "rate": 80,
+            "channels": 50,
+            "bits": 50,
+            "size": 90,
+            "path": 430,
+        }
         for column in columns:
             self.sample_tree.heading(column, text=headings[column])
             self.sample_tree.column(column, width=widths[column], anchor="w")
         self.sample_tree.grid(row=1, column=0, sticky="nsew")
-        self._tip(self.sample_tree, "Local sample table. Select a row to preview audio or trigger the matching MIDI pad slot.")
+        self._tip(
+            self.sample_tree,
+            "Local sample table. Select a row to preview audio or trigger the matching MIDI pad slot.",
+        )
 
     def _build_hardware_files(self, parent: tk.Frame) -> None:
         parent.columnconfigure(0, weight=1)
@@ -524,14 +648,46 @@ class KO2DawApp:
         toolbar = tk.Frame(parent, bg="#d8d4c8")
         toolbar.grid(row=0, column=0, sticky="ew", pady=(0, 6))
         hardware_buttons = (
-            ("READ IDENTITY", self._probe_identity, "Ask the EP-133 for its universal MIDI identity. Read-only."),
-            ("FILE INIT", self._probe_file_init, "Initialize the Teenage Engineering read-only file protocol and learn chunk size."),
-            ("LIST ROOT", self._probe_root_list, "List the root folders exposed by the device, usually sounds and projects."),
-            ("LIST SELECTED", self._probe_selected_node, "List the selected hardware node, such as sounds or projects."),
-            ("PLAY FILE", self._play_selected_device_file, "Start playback preview for the selected device file. This talks to the EP-133 and may make sound."),
-            ("STOP FILE", self._stop_selected_device_file, "Stop playback preview for the selected device file."),
-            ("SCAN DEVICE", self._scan_complete_device_tree, "Run the full read-only scan immediately used at connection: identity, file init, root, and every discovered directory."),
-            ("EXPORT CACHE", self._export_hardware_cache, "Save visible hardware file rows to daw_projects/hardware_file_cache.json."),
+            (
+                "READ IDENTITY",
+                self._probe_identity,
+                "Ask the EP-133 for its universal MIDI identity. Read-only.",
+            ),
+            (
+                "FILE INIT",
+                self._probe_file_init,
+                "Initialize the Teenage Engineering read-only file protocol and learn chunk size.",
+            ),
+            (
+                "LIST ROOT",
+                self._probe_root_list,
+                "List the root folders exposed by the device, usually sounds and projects.",
+            ),
+            (
+                "LIST SELECTED",
+                self._probe_selected_node,
+                "List the selected hardware node, such as sounds or projects.",
+            ),
+            (
+                "PLAY FILE",
+                self._play_selected_device_file,
+                "Start playback preview for the selected device file. This talks to the EP-133 and may make sound.",
+            ),
+            (
+                "STOP FILE",
+                self._stop_selected_device_file,
+                "Stop playback preview for the selected device file.",
+            ),
+            (
+                "SCAN DEVICE",
+                self._scan_complete_device_tree,
+                "Run the full read-only scan immediately used at connection: identity, file init, root, and every discovered directory.",
+            ),
+            (
+                "EXPORT CACHE",
+                self._export_hardware_cache,
+                "Save visible hardware file rows to daw_projects/hardware_file_cache.json.",
+            ),
             ("CLEAR", self._clear_hardware_cache, "Clear the displayed hardware file rows."),
         )
         for index, (text, command, tip) in enumerate(hardware_buttons):
@@ -539,10 +695,10 @@ class KO2DawApp:
             button.pack(side=tk.LEFT, padx=(0 if index == 0 else 4, 4))
             self._tip(button, tip)
         self.hardware_status = tk.StringVar(value="connect live, then run read-only probes")
-        hardware_status = tk.Label(toolbar, textvariable=self.hardware_status, bg="#d8d4c8", font=("Segoe UI", 10, "bold"))
-        hardware_status.pack(
-            side=tk.RIGHT
+        hardware_status = tk.Label(
+            toolbar, textvariable=self.hardware_status, bg="#d8d4c8", font=("Segoe UI", 10, "bold")
         )
+        hardware_status.pack(side=tk.RIGHT)
         self._tip(hardware_status, "Status of the most recent hardware probe.")
 
         columns = ("kind", "node", "name", "size", "status")
@@ -552,7 +708,10 @@ class KO2DawApp:
             self.hardware_tree.heading(column, text=column.title())
             self.hardware_tree.column(column, width=widths[column], anchor="w")
         self.hardware_tree.grid(row=1, column=0, sticky="nsew")
-        self._tip(self.hardware_tree, "Hardware file rows loaded automatically after connecting. Select a directory and use LIST SELECTED to refresh it, or select a file and use PLAY FILE for device preview.")
+        self._tip(
+            self.hardware_tree,
+            "Hardware file rows loaded automatically after connecting. Select a directory and use LIST SELECTED to refresh it, or select a file and use PLAY FILE for device preview.",
+        )
 
     def _build_settings(self, parent: tk.Frame) -> None:
         parent.columnconfigure(0, weight=1)
@@ -562,12 +721,26 @@ class KO2DawApp:
 
         header = tk.Frame(parent, bg="#d8d4c8")
         header.grid(row=0, column=0, columnspan=3, sticky="ew", pady=(0, 8))
-        title = tk.Label(header, text="APP CONFIGURATION", bg="#d8d4c8", font=("Segoe UI", 11, "bold"))
+        title = tk.Label(
+            header, text="APP CONFIGURATION", bg="#d8d4c8", font=("Segoe UI", 11, "bold")
+        )
         title.pack(side=tk.LEFT)
-        self._tip(title, "Persistent app settings. Apply changes before connecting; Save writes daw_projects/app_settings.json.")
-        status = tk.Label(header, textvariable=self.settings_status, bg="#d8d4c8", fg="#7a1f16", font=("Segoe UI", 10, "bold"))
+        self._tip(
+            title,
+            "Persistent app settings. Apply changes before connecting; Save writes daw_projects/app_settings.json.",
+        )
+        status = tk.Label(
+            header,
+            textvariable=self.settings_status,
+            bg="#d8d4c8",
+            fg="#7a1f16",
+            font=("Segoe UI", 10, "bold"),
+        )
         status.pack(side=tk.RIGHT)
-        self._tip(status, "Current configuration mode and whether expert write frame construction is armed.")
+        self._tip(
+            status,
+            "Current configuration mode and whether expert write frame construction is armed.",
+        )
 
         route_box = tk.LabelFrame(parent, text="Route", bg="#d8d4c8", padx=8, pady=8)
         route_box.grid(row=1, column=0, sticky="nsew", padx=(0, 6))
@@ -580,19 +753,30 @@ class KO2DawApp:
             state="readonly",
         )
         route_combo.grid(row=0, column=1, sticky="ew", pady=3)
-        self._tip(route_combo, "auto prefers direct EP-133 USB MIDI, then QUAD-CAPTURE. manual uses the chosen ports below.")
+        self._tip(
+            route_combo,
+            "auto prefers direct EP-133 USB MIDI, then QUAD-CAPTURE. manual uses the chosen ports below.",
+        )
 
         tk.Label(route_box, text="Input", bg="#d8d4c8").grid(row=1, column=0, sticky="w", pady=3)
         self.input_combo = ttk.Combobox(route_box, textvariable=self.input_port_setting)
         self.input_combo.grid(row=1, column=1, sticky="ew", pady=3)
-        self._tip(self.input_combo, "MIDI input used for SysEx responses and live monitoring. Leave blank for output-only control.")
+        self._tip(
+            self.input_combo,
+            "MIDI input used for SysEx responses and live monitoring. Leave blank for output-only control.",
+        )
 
         tk.Label(route_box, text="Output", bg="#d8d4c8").grid(row=2, column=0, sticky="w", pady=3)
         self.output_combo = ttk.Combobox(route_box, textvariable=self.output_port_setting)
         self.output_combo.grid(row=2, column=1, sticky="ew", pady=3)
-        self._tip(self.output_combo, "MIDI output used in manual route mode. EP-133 is preferred for direct USB-C control.")
+        self._tip(
+            self.output_combo,
+            "MIDI output used in manual route mode. EP-133 is preferred for direct USB-C control.",
+        )
 
-        refresh = tk.Button(route_box, text="REFRESH PORTS", command=self._refresh_report, bg="#efeadf")
+        refresh = tk.Button(
+            route_box, text="REFRESH PORTS", command=self._refresh_report, bg="#efeadf"
+        )
         refresh.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(10, 0))
         self._tip(refresh, "Rescan visible MIDI input/output ports and update the route choices.")
 
@@ -600,36 +784,91 @@ class KO2DawApp:
         access_box.grid(row=1, column=1, sticky="nsew", padx=6)
         access_box.columnconfigure(1, weight=1)
         tk.Label(access_box, text="Mode", bg="#d8d4c8").grid(row=0, column=0, sticky="w", pady=3)
-        access_combo = ttk.Combobox(access_box, textvariable=self.access_mode_setting, values=APP_ACCESS_MODES, state="readonly")
+        access_combo = ttk.Combobox(
+            access_box,
+            textvariable=self.access_mode_setting,
+            values=APP_ACCESS_MODES,
+            state="readonly",
+        )
         access_combo.grid(row=0, column=1, sticky="ew", pady=3)
-        self._tip(access_combo, "read-only blocks playback and writes. read-playback allows selected-file preview. expert-write arms write frame construction only after typing WRITE.")
+        self._tip(
+            access_combo,
+            "read-only blocks playback and writes. read-playback allows selected-file preview. expert-write arms write frame construction only after typing WRITE.",
+        )
 
         checks = (
-            ("Auto-connect on launch", self.auto_connect_setting, "Check for the configured KO II route on startup and prompt to connect when found."),
-            ("SysEx enabled", self.sysex_enabled_setting, "Allow SysEx identity, file browsing, and selected-file playback commands."),
-            ("Auto-scan on connect", self.auto_scan_setting, "Load the complete hardware file tree immediately after connecting."),
-            ("Allow file playback", self.file_playback_setting, "Allow PLAY FILE / STOP FILE in read-playback or expert-write mode."),
-            ("Confirm playback", self.playback_confirm_setting, "Ask before PLAY FILE sends an audible device preview command."),
+            (
+                "Auto-connect on launch",
+                self.auto_connect_setting,
+                "Check for the configured KO II route on startup and prompt to connect when found.",
+            ),
+            (
+                "SysEx enabled",
+                self.sysex_enabled_setting,
+                "Allow SysEx identity, file browsing, and selected-file playback commands.",
+            ),
+            (
+                "Auto-scan on connect",
+                self.auto_scan_setting,
+                "Load the complete hardware file tree immediately after connecting.",
+            ),
+            (
+                "Allow file playback",
+                self.file_playback_setting,
+                "Allow PLAY FILE / STOP FILE in read-playback or expert-write mode.",
+            ),
+            (
+                "Confirm playback",
+                self.playback_confirm_setting,
+                "Ask before PLAY FILE sends an audible device preview command.",
+            ),
         )
         for index, (text, variable, tip) in enumerate(checks, start=1):
-            check = tk.Checkbutton(access_box, text=text, variable=variable, bg="#d8d4c8", anchor="w")
+            check = tk.Checkbutton(
+                access_box, text=text, variable=variable, bg="#d8d4c8", anchor="w"
+            )
             check.grid(row=index, column=0, columnspan=2, sticky="ew", pady=2)
             self._tip(check, tip)
 
-        tk.Label(access_box, text="Write arm", bg="#d8d4c8").grid(row=6, column=0, sticky="w", pady=(8, 3))
+        tk.Label(access_box, text="Write arm", bg="#d8d4c8").grid(
+            row=6, column=0, sticky="w", pady=(8, 3)
+        )
         write_entry = tk.Entry(access_box, textvariable=self.write_arm_setting, show="*")
         write_entry.grid(row=6, column=1, sticky="ew", pady=(8, 3))
-        self._tip(write_entry, "Expert write mode only becomes armed when this field is exactly WRITE. No upload/delete/move buttons are exposed yet.")
+        self._tip(
+            write_entry,
+            "Expert write mode only becomes armed when this field is exactly WRITE. No upload/delete/move buttons are exposed yet.",
+        )
 
         scan_box = tk.LabelFrame(parent, text="SysEx And Scan", bg="#d8d4c8", padx=8, pady=8)
         scan_box.grid(row=1, column=2, sticky="nsew", padx=(6, 0))
         scan_box.columnconfigure(1, weight=1)
         fields = (
-            ("Timeout sec", self.sysex_timeout_setting, "How long to wait for each SysEx response."),
-            ("Max SysEx bytes", self.max_sysex_bytes_setting, "Maximum outbound SysEx frame size allowed by the live controller."),
-            ("Pages per dir", self.scan_pages_setting, "Maximum file-list pages to request for each hardware directory."),
-            ("Max depth", self.scan_depth_setting, "Maximum recursive directory depth for device scanning."),
-            ("Max dirs", self.scan_dirs_setting, "Maximum directories to visit during a full device scan."),
+            (
+                "Timeout sec",
+                self.sysex_timeout_setting,
+                "How long to wait for each SysEx response.",
+            ),
+            (
+                "Max SysEx bytes",
+                self.max_sysex_bytes_setting,
+                "Maximum outbound SysEx frame size allowed by the live controller.",
+            ),
+            (
+                "Pages per dir",
+                self.scan_pages_setting,
+                "Maximum file-list pages to request for each hardware directory.",
+            ),
+            (
+                "Max depth",
+                self.scan_depth_setting,
+                "Maximum recursive directory depth for device scanning.",
+            ),
+            (
+                "Max dirs",
+                self.scan_dirs_setting,
+                "Maximum directories to visit during a full device scan.",
+            ),
         )
         for row, (label, variable, tip) in enumerate(fields):
             tk.Label(scan_box, text=label, bg="#d8d4c8").grid(row=row, column=0, sticky="w", pady=3)
@@ -641,8 +880,16 @@ class KO2DawApp:
         actions.grid(row=2, column=0, columnspan=3, sticky="ew", pady=(8, 0))
         buttons = (
             ("APPLY", self._apply_settings, "Apply settings to the current GUI session."),
-            ("SAVE", self._save_app_settings, "Apply and write settings to daw_projects/app_settings.json."),
-            ("LOAD DEFAULTS", self._load_default_settings, "Replace the form with conservative defaults; press APPLY or SAVE afterward."),
+            (
+                "SAVE",
+                self._save_app_settings,
+                "Apply and write settings to daw_projects/app_settings.json.",
+            ),
+            (
+                "LOAD DEFAULTS",
+                self._load_default_settings,
+                "Replace the form with conservative defaults; press APPLY or SAVE afterward.",
+            ),
         )
         for index, (text, command, tip) in enumerate(buttons):
             button = tk.Button(actions, text=text, command=command, bg="#efeadf", width=18)
@@ -656,7 +903,10 @@ class KO2DawApp:
         parent.rowconfigure(0, weight=1)
         self.log = tk.Text(parent, height=6, bg="#171915", fg="#f3f1de", insertbackground="#f3f1de")
         self.log.grid(row=0, column=0, sticky="nsew")
-        self._tip(self.log, "Chronological activity log for GUI actions, MIDI sends, MIDI input, and SysEx probe results.")
+        self._tip(
+            self.log,
+            "Chronological activity log for GUI actions, MIDI sends, MIDI input, and SysEx probe results.",
+        )
         self._log("ready: dry-run mode")
 
     def _refresh_settings_port_choices(self) -> None:
@@ -776,7 +1026,11 @@ class KO2DawApp:
                 output_port=output_port,
                 allow_output=output_port,
                 message=f"Using manual MIDI output: {output_port}",
-                requires_user_action=None if selected_input or not input_port else "Selected input is not visible; SysEx responses will not be monitored.",
+                requires_user_action=(
+                    None
+                    if selected_input or not input_port
+                    else "Selected input is not visible; SysEx responses will not be monitored."
+                ),
             )
         return resolve_ko2_route(self.report, preferred)
 
@@ -854,19 +1108,28 @@ class KO2DawApp:
             clock_enabled=True,
             safety=safety,
         )
-        self.controller = DAWController(config=self.config, backend=backend, output_port=route.output_port)
+        self.controller = DAWController(
+            config=self.config, backend=backend, output_port=route.output_port
+        )
         self.backend = backend
         self.live_backend = backend
         self.live_input_port = route.input_port
         self.live_output_port = route.output_port
         if route.input_port:
-            self.input_monitor = WinMMInputMonitor(route.input_port, self._queue_midi_input, include_sysex=True)
+            self.input_monitor = WinMMInputMonitor(
+                route.input_port, self._queue_midi_input, include_sysex=True
+            )
             try:
                 self.input_monitor.start()
-            except Exception as exc:
+            except (
+                # ruff: ignore[BLE001] Rollback MIDI connection and report any backend startup failure.
+                Exception
+            ) as exc:
                 backend.close()
                 self._reset_dry_controller()
-                messagebox.showerror("KO II Connection", f"Could not open MIDI input {route.input_port!r}:\n{exc}")
+                messagebox.showerror(
+                    "KO II Connection", f"Could not open MIDI input {route.input_port!r}:\n{exc}"
+                )
                 return
         self.status.set("LIVE EP-133")
         self.live_state.set(f"live: {self.live_input_port or '-'} -> {self.live_output_port}")
@@ -880,12 +1143,18 @@ class KO2DawApp:
         if self.input_monitor:
             try:
                 self.input_monitor.stop()
-            except Exception as exc:
+            except (
+                # ruff: ignore[BLE001] Report shutdown failures and continue disconnecting.
+                Exception
+            ) as exc:
                 self._log(f"monitor close error: {exc}")
         if self.live_backend:
             try:
                 self.live_backend.close()
-            except Exception as exc:
+            except (
+                # ruff: ignore[BLE001] Report shutdown failures and reset the dry-run controller.
+                Exception
+            ) as exc:
                 self._log(f"midi close error: {exc}")
         self._reset_dry_controller()
         self.status.set("DRY RUN")
@@ -946,7 +1215,10 @@ class KO2DawApp:
     def _send_midi(self, message: MidiMessage) -> bool:
         try:
             self.controller.send(message)
-        except Exception as exc:
+        except (
+            # ruff: ignore[BLE001] Surface backend errors without stopping the GUI event loop.
+            Exception
+        ) as exc:
             self._log(f"send failed: {exc}")
             messagebox.showerror("KO II MIDI", str(exc))
             return False
@@ -961,10 +1233,10 @@ class KO2DawApp:
     def _set_bpm(self, value: float) -> None:
         self.bpm.set(round(value))
         self.session.bpm = float(round(value))
-        self._set_action(f"tempo {int(round(value))} bpm")
+        self._set_action(f"tempo {round(value)} bpm")
 
     def _set_velocity(self, value: float) -> None:
-        self.velocity.set(int(round(value)))
+        self.velocity.set(round(value))
         self._set_action(f"velocity {self.velocity.get()}")
 
     def _send_mod_wheel(self, value: int) -> None:
@@ -975,7 +1247,11 @@ class KO2DawApp:
         group = self.group.get()
         self.session.selected_group = group
         note = PAD_NOTES[group][pad_index]
-        if not self._send_midi(MidiMessage.note_on(note, velocity=self.velocity.get(), channel=self.config.midi_channel)):
+        if not self._send_midi(
+            MidiMessage.note_on(
+                note, velocity=self.velocity.get(), channel=self.config.midi_channel
+            )
+        ):
             return
         self._send_midi(MidiMessage.note_off(note, channel=self.config.midi_channel))
         self._set_action(f"group {group} pad {pad_index + 1} note {note}")
@@ -1018,7 +1294,9 @@ class KO2DawApp:
     def _save_session(self) -> None:
         self.session.routing.input_port = (self.report.get("input_ports") or [None])[0]
         outputs = list(self.report.get("output_ports") or [])
-        self.session.routing.output_port = outputs[0] if len(outputs) == 1 else self.session.routing.output_port
+        self.session.routing.output_port = (
+            outputs[0] if len(outputs) == 1 else self.session.routing.output_port
+        )
         self.session.routing.input_port = self.live_input_port or self.session.routing.input_port
         self.session.routing.output_port = self.live_output_port or self.session.routing.output_port
         self.session.routing.live_enabled = self.live_output_port is not None
@@ -1039,7 +1317,10 @@ class KO2DawApp:
             try:
                 self.sample_library.add_wav(path)
                 imported += 1
-            except Exception as exc:
+            except (
+                # ruff: ignore[BLE001] Report each failed sample and continue the import batch.
+                Exception
+            ) as exc:
                 self._log(f"sample import failed: {Path(path).name}: {exc}")
         self._refresh_sample_tree()
         self._set_action(f"imported {imported} wav sample(s)")
@@ -1051,12 +1332,17 @@ class KO2DawApp:
         )
         if not manifest:
             return
-        audio_directory = filedialog.askdirectory(title="Choose folder containing exported WAV files")
+        audio_directory = filedialog.askdirectory(
+            title="Choose folder containing exported WAV files"
+        )
         if not audio_directory:
             return
         try:
             count = self.sample_library.import_web_manifest(manifest, audio_directory)
-        except Exception as exc:
+        except (
+            # ruff: ignore[BLE001] Show import failures without replacing the active library.
+            Exception
+        ) as exc:
             messagebox.showerror("KO II Samples", str(exc))
             return
         self._refresh_sample_tree()
@@ -1096,6 +1382,7 @@ class KO2DawApp:
             return
         try:
             play_wav(sample.path)
+        # ruff: ignore[BLE001] Show native playback failures in the GUI.
         except Exception as exc:
             messagebox.showerror("KO II Samples", str(exc))
             return
@@ -1116,7 +1403,9 @@ class KO2DawApp:
         self._trigger_pad(pad)
 
     def _open_sample_manifest(self) -> None:
-        path = filedialog.askopenfilename(title="Open desktop sample manifest", filetypes=(("JSON manifest", "*.json"),))
+        path = filedialog.askopenfilename(
+            title="Open desktop sample manifest", filetypes=(("JSON manifest", "*.json"),)
+        )
         if not path:
             return
         try:
@@ -1125,7 +1414,8 @@ class KO2DawApp:
             messagebox.showerror("KO II Samples", str(exc))
             return
         if self.sample_library.samples and not messagebox.askyesno(
-            "Replace local sample table?", "Opening this manifest replaces the current local table. Save it first if you need to keep it. Continue?"
+            "Replace local sample table?",
+            "Opening this manifest replaces the current local table. Save it first if you need to keep it. Continue?",
         ):
             return
         self.sample_library = restored
@@ -1133,9 +1423,13 @@ class KO2DawApp:
         self._set_action(f"opened {len(restored.samples)} local sample(s)")
 
     def _save_sample_manifest(self) -> None:
-        target = filedialog.asksaveasfilename(title="Save desktop sample manifest", initialdir=self.project_root,
-                                            initialfile="sample_manifest.json", defaultextension=".json",
-                                            filetypes=(("JSON manifest", "*.json"),))
+        target = filedialog.asksaveasfilename(
+            title="Save desktop sample manifest",
+            initialdir=self.project_root,
+            initialfile="sample_manifest.json",
+            defaultextension=".json",
+            filetypes=(("JSON manifest", "*.json"),),
+        )
         if not target:
             return
         try:
@@ -1167,13 +1461,17 @@ class KO2DawApp:
             return
         self._run_sysex_probe(
             f"list-{row['name']}",
-            build_te_frame(TEFileCommand.COMMAND, build_file_list_payload(int(row["node"]), 0), request_id=3),
+            build_te_frame(
+                TEFileCommand.COMMAND, build_file_list_payload(int(row["node"]), 0), request_id=3
+            ),
         )
 
     def _selected_hardware_row(self) -> dict[str, object] | None:
         selected = self.hardware_tree.selection()
         if not selected:
-            messagebox.showinfo("KO II Hardware Files", "Select a hardware folder or file row first.")
+            messagebox.showinfo(
+                "KO II Hardware Files", "Select a hardware folder or file row first."
+            )
             return None
         values = self.hardware_tree.item(selected[0], "values")
         if len(values) < 2:
@@ -1181,7 +1479,9 @@ class KO2DawApp:
         try:
             node_id = int(values[1])
         except (TypeError, ValueError):
-            messagebox.showinfo("KO II Hardware Files", "The selected row does not have a numeric node id.")
+            messagebox.showinfo(
+                "KO II Hardware Files", "The selected row does not have a numeric node id."
+            )
             return None
         return {
             "kind": str(values[0]) if len(values) > 0 else "",
@@ -1216,9 +1516,13 @@ class KO2DawApp:
         node_id = int(row["node"])
         label = str(row["name"])
         verb = "play" if action == TEFileCommand.PLAYBACK_START else "stop"
-        if action == TEFileCommand.PLAYBACK_START and self.app_settings.require_playback_confirmation and not messagebox.askyesno(
-            "Play Device File",
-            f"Send EP-133 device playback start for:\n\n{label}\n\nThis may play audio on the sampler.",
+        if (
+            action == TEFileCommand.PLAYBACK_START
+            and self.app_settings.require_playback_confirmation
+            and not messagebox.askyesno(
+                "Play Device File",
+                f"Send EP-133 device playback start for:\n\n{label}\n\nThis may play audio on the sampler.",
+            )
         ):
             return
         frame = build_te_frame(
@@ -1230,7 +1534,9 @@ class KO2DawApp:
 
     def _run_sysex_probe(self, name: str, frame: bytes) -> None:
         if not self.live_output_port:
-            messagebox.showinfo("KO II Hardware Files", "Connect EP-133 live before running hardware probes.")
+            messagebox.showinfo(
+                "KO II Hardware Files", "Connect EP-133 live before running hardware probes."
+            )
             return
         if not self.app_settings.sysex_enabled:
             messagebox.showinfo("KO II Hardware Files", "SysEx is disabled in Settings.")
@@ -1250,7 +1556,10 @@ class KO2DawApp:
                 )
                 timed_out = not responses
                 self.input_queue.put(("sysex_probe_result", name, responses, timed_out))
-            except Exception as exc:
+            except (
+                # ruff: ignore[BLE001] Relay all probe worker failures to the GUI queue.
+                Exception
+            ) as exc:
                 self.input_queue.put(("error", exc))
 
         threading.Thread(target=worker, daemon=True).start()
@@ -1258,7 +1567,9 @@ class KO2DawApp:
     def _scan_complete_device_tree(self, auto: bool = False) -> None:
         if not self.live_output_port:
             if not auto:
-                messagebox.showinfo("KO II Hardware Files", "Connect EP-133 live before scanning device files.")
+                messagebox.showinfo(
+                    "KO II Hardware Files", "Connect EP-133 live before scanning device files."
+                )
             return
         if not self.app_settings.sysex_enabled:
             if not auto:
@@ -1266,7 +1577,9 @@ class KO2DawApp:
             return
         if self._hardware_scan_lock.locked():
             if not auto:
-                messagebox.showinfo("KO II Hardware Files", "A device file scan is already running.")
+                messagebox.showinfo(
+                    "KO II Hardware Files", "A device file scan is already running."
+                )
             return
 
         def worker() -> None:
@@ -1302,7 +1615,9 @@ class KO2DawApp:
                     scanned_nodes += 1
                     entries_seen_for_node: set[tuple[tuple[object, ...], ...]] = set()
                     for page in range(self.app_settings.scan_pages_per_dir):
-                        self.input_queue.put(("hardware_scan_status", f"device scan: node {node_id} page {page}"))
+                        self.input_queue.put(
+                            ("hardware_scan_status", f"device scan: node {node_id} page {page}")
+                        )
                         request_id = (request_id + 1) & 0x3FFF
                         frame = build_te_frame(
                             TEFileCommand.COMMAND,
@@ -1318,7 +1633,12 @@ class KO2DawApp:
                         if not entries:
                             break
                         signature = tuple(
-                            (entry.get("node_id"), entry.get("kind"), entry.get("name"), entry.get("size"))
+                            (
+                                entry.get("node_id"),
+                                entry.get("kind"),
+                                entry.get("name"),
+                                entry.get("size"),
+                            )
                             for entry in entries
                         )
                         if signature in entries_seen_for_node:
@@ -1330,11 +1650,28 @@ class KO2DawApp:
                             kind = str(entry.get("kind") or "file")
                             size = int(entry.get("size") or 0)
                             full_path = self._device_child_path(parent_path, name)
-                            self.input_queue.put(("hardware_entry", kind, child_node, full_path, size, f"node {node_id} page {page}"))
+                            self.input_queue.put(
+                                (
+                                    "hardware_entry",
+                                    kind,
+                                    child_node,
+                                    full_path,
+                                    size,
+                                    f"node {node_id} page {page}",
+                                )
+                            )
                             if kind == "dir" and child_node not in seen_nodes:
                                 queue_nodes.append((child_node, full_path, depth + 1))
-                self.input_queue.put(("hardware_scan_status", f"device scan complete: {scanned_nodes} directories checked"))
-            except Exception as exc:
+                self.input_queue.put(
+                    (
+                        "hardware_scan_status",
+                        f"device scan complete: {scanned_nodes} directories checked",
+                    )
+                )
+            except (
+                # ruff: ignore[BLE001] Relay scan failures and release the scan lock.
+                Exception
+            ) as exc:
                 self.input_queue.put(("error", exc))
             finally:
                 self._hardware_scan_lock.release()
@@ -1343,7 +1680,9 @@ class KO2DawApp:
 
     def _run_sysex_probe_sequence(self, frames: list[tuple[str, bytes]]) -> None:
         if not self.live_output_port:
-            messagebox.showinfo("KO II Hardware Files", "Connect EP-133 live before running hardware probes.")
+            messagebox.showinfo(
+                "KO II Hardware Files", "Connect EP-133 live before running hardware probes."
+            )
             return
         if not self.app_settings.sysex_enabled:
             messagebox.showinfo("KO II Hardware Files", "SysEx is disabled in Settings.")
@@ -1362,12 +1701,17 @@ class KO2DawApp:
                     timed_out = not responses
                     self.input_queue.put(("sysex_probe_result", name, responses, timed_out))
                     time.sleep(0.08)
-            except Exception as exc:
+            except (
+                # ruff: ignore[BLE001] Relay all polling worker failures to the GUI queue.
+                Exception
+            ) as exc:
                 self.input_queue.put(("error", exc))
 
         threading.Thread(target=worker, daemon=True).start()
 
-    def _send_sysex_and_decode(self, name: str, frame: bytes, timeout_sec: float) -> list[SysexDecodedResponse]:
+    def _send_sysex_and_decode(
+        self, name: str, frame: bytes, timeout_sec: float
+    ) -> list[SysexDecodedResponse]:
         del name
         with self._sysex_transaction_lock:
             with self._sysex_lock:
@@ -1390,7 +1734,9 @@ class KO2DawApp:
                 self._sysex_event.clear()
         return []
 
-    def _entries_from_responses(self, responses: list[SysexDecodedResponse]) -> list[dict[str, object]]:
+    def _entries_from_responses(
+        self, responses: list[SysexDecodedResponse]
+    ) -> list[dict[str, object]]:
         entries: list[dict[str, object]] = []
         for response in responses:
             response_entries = response.details.get("entries")
@@ -1470,7 +1816,9 @@ class KO2DawApp:
 
         path = self.project_root / "hardware_file_cache.json"
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"rows": rows}, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        path.write_text(
+            json.dumps({"rows": rows}, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
         self._set_action(f"exported {path.name}")
         messagebox.showinfo("KO II Hardware Files", f"Exported hardware cache:\n{path}")
 
@@ -1503,7 +1851,9 @@ class KO2DawApp:
 
     def _show_sysex_lab(self) -> None:
         identity = bytes_to_hex(build_universal_identity_request())
-        file_init = bytes_to_hex(build_te_frame(TEFileCommand.COMMAND, build_file_init_payload(), request_id=1))
+        file_init = bytes_to_hex(
+            build_te_frame(TEFileCommand.COMMAND, build_file_init_payload(), request_id=1)
+        )
         lines = [
             f"7-bit packing self-test: {self_test_packing()}",
             f"access mode: {self.app_settings.access_mode}",

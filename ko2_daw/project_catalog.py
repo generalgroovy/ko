@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
 import hashlib
 import json
+from collections.abc import Callable, Iterable
+from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Callable, Iterable
 
 from ko2_daw.device_snapshot import ReadOnlySysexSession
 from ko2_daw.device_transfer import (
@@ -20,12 +20,10 @@ from ko2_daw.device_transfer import (
 from ko2_daw.io_utils import atomic_write_text
 from ko2_daw.midi import midi_capability_report
 from ko2_daw.project_archive import (
-    ProjectArchiveInfo,
     inspect_project_archive,
     validate_ep133_project_structure,
 )
 from ko2_daw.routing import KO2Route, resolve_ko2_route
-
 
 PROJECT_SLOTS: tuple[tuple[int, int], ...] = tuple(
     (slot, 2000 + slot * 1000) for slot in range(1, 10)
@@ -164,11 +162,7 @@ def save_project_catalog(
     catalog: ProjectCatalog,
     path: str | Path | None = None,
 ) -> Path:
-    target = (
-        Path(path)
-        if path is not None
-        else Path(catalog.library_root) / "project_catalog.json"
-    )
+    target = Path(path) if path is not None else Path(catalog.library_root) / "project_catalog.json"
     return atomic_write_text(
         target,
         json.dumps(catalog.to_dict(), indent=2, sort_keys=True) + "\n",
@@ -223,7 +217,15 @@ def backup_project_archives(
             ),
         )
 
-        def file_progress(done: int, total: int, stage: str) -> None:
+        def file_progress(
+            done: int,
+            total: int,
+            stage: str,
+            *,
+            node_id: int = node_id,
+            slot: int = slot,
+            index: int = index,
+        ) -> None:
             _notify(
                 progress,
                 ProjectBackupEvent(
@@ -244,9 +246,7 @@ def backup_project_archives(
         )
         # Reject malformed or unrelated directory payloads before updating latest.json.
         if not download.is_directory_archive:
-            raise ValueError(
-                f"Device node {node_id} did not return a directory archive."
-            )
+            raise ValueError(f"Device node {node_id} did not return a directory archive.")
         project_info = inspect_project_archive(download.data)
         validate_ep133_project_structure(project_info)
         artifact = save_device_download(
@@ -331,16 +331,12 @@ def _catalog_entry(
             )
         manifest = json.loads(artifact.manifest_path.read_text(encoding="utf-8"))
         if int(manifest.get("node_id", -1)) != node_id:
-            raise ValueError(
-                f"Manifest node {manifest.get('node_id')} does not match {node_id}."
-            )
+            raise ValueError(f"Manifest node {manifest.get('node_id')} does not match {node_id}.")
         raw = artifact.raw_path.read_bytes()
         actual_sha = hashlib.sha256(raw).hexdigest()
         expected_sha = str(manifest.get("sha256") or "")
         if actual_sha != expected_sha:
-            raise ValueError(
-                f"Raw SHA-256 {actual_sha} does not match manifest {expected_sha}."
-            )
+            raise ValueError(f"Raw SHA-256 {actual_sha} does not match manifest {expected_sha}.")
         if artifact.bundle_dir.name != expected_sha:
             raise ValueError("Bundle directory does not match its content hash.")
         info = inspect_project_archive(raw)
@@ -397,6 +393,7 @@ def _notify(
         return
     try:
         callback(event)
+    # ruff: ignore[BLE001] Reporting callbacks must not abandon an active device GET.
     except Exception:
         # UI/reporting failures must not abandon an active device GET transaction.
         return

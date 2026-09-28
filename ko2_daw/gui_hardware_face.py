@@ -125,7 +125,9 @@ def apply_hardware_face_patch(gui_module: Any) -> None:
             ("metro", 5, 0),
         )
         for key, row, col in layout:
-            button = _button(tk, left, ACTIONS[key].label, lambda value=key: self._face_action(value))
+            button = _button(
+                tk, left, ACTIONS[key].label, lambda value=key: self._face_action(value)
+            )
             button.grid(row=row, column=col, sticky="ew", padx=3, pady=3)
             self._face_buttons[key] = button
 
@@ -155,7 +157,9 @@ def apply_hardware_face_patch(gui_module: Any) -> None:
         groups.grid(row=0, column=0, sticky="ew", pady=(0, 8))
         for index, group in enumerate(LANES):
             groups.columnconfigure(index, weight=1)
-            button = _button(tk, groups, f"GROUP {group}", lambda value=group: self._face_group(value))
+            button = _button(
+                tk, groups, f"GROUP {group}", lambda value=group: self._face_group(value)
+            )
             button.grid(row=0, column=index, sticky="ew", padx=3)
             self._face_group_buttons[group] = button
 
@@ -207,7 +211,9 @@ def apply_hardware_face_patch(gui_module: Any) -> None:
         self.face_bpm = _slider(tk, right, "BPM", 40, 240, self._face_bpm)
         self.face_bpm.set(int(float(self.bpm.get())))
         self.face_bpm.grid(row=1, column=0, columnspan=2, sticky="ew", padx=4, pady=4)
-        self.face_volume = _slider(tk, right, "VOLUME", 0, 127, lambda v: self._face_cc(7, v, "volume"))
+        self.face_volume = _slider(
+            tk, right, "VOLUME", 0, 127, lambda v: self._face_cc(7, v, "volume")
+        )
         self.face_volume.set(96)
         self.face_volume.grid(row=2, column=0, columnspan=2, sticky="ew", padx=4, pady=4)
         self.face_fader = tk.Scale(
@@ -257,14 +263,18 @@ def apply_hardware_face_patch(gui_module: Any) -> None:
         if key == "metro":
             value = 127 if self._face_metro else 0
         if action.cc is not None:
-            self._send_midi(MidiMessage.control_change(action.cc, value, channel=self.config.midi_channel))
+            self._send_midi(
+                MidiMessage.control_change(action.cc, value, channel=self.config.midi_channel)
+            )
         self._set_action(f"device {action.label.lower()}")
         self._refresh_hardware_face()
 
     def _face_group(self, group: str) -> None:
         self.group.set(group)
         self.session.selected_group = group
-        self._send_midi(MidiMessage.program_change(GROUP_PROGRAMS[group], channel=self.config.midi_channel))
+        self._send_midi(
+            MidiMessage.program_change(GROUP_PROGRAMS[group], channel=self.config.midi_channel)
+        )
         self._set_action(f"group {group}")
         self._refresh_hardware_face()
 
@@ -275,7 +285,9 @@ def apply_hardware_face_patch(gui_module: Any) -> None:
 
     def _face_cc(self, control: int, value, label: str) -> None:
         midi_value = int(float(value))
-        self._send_midi(MidiMessage.control_change(control, midi_value, channel=self.config.midi_channel))
+        self._send_midi(
+            MidiMessage.control_change(control, midi_value, channel=self.config.midi_channel)
+        )
         self._set_action(f"{label} {midi_value}")
         self._refresh_hardware_face()
 
@@ -312,7 +324,15 @@ def apply_hardware_face_patch(gui_module: Any) -> None:
             self._refresh_hardware_face()
 
     def _observe_face_cc(self, control: int, value: int) -> None:
-        mapping = {20: "sound", 21: "main", 22: "sample", 23: "keys", 24: "timing", 25: "fx", 26: "fader"}
+        mapping = {
+            20: "sound",
+            21: "main",
+            22: "sample",
+            23: "keys",
+            24: "timing",
+            25: "fx",
+            26: "fader",
+        }
         if control in mapping and value:
             self._face_mode = mapping[control]
         elif control == 27:
@@ -344,9 +364,15 @@ def apply_hardware_face_patch(gui_module: Any) -> None:
             )
         )
         live = "LIVE" if self.live_output_port else "DRY"
-        self.face_safety.configure(text=f"{live} / {self.app_settings.access_mode} / CC mirror safe")
+        self.face_safety.configure(
+            text=f"{live} / {self.app_settings.access_mode} / CC mirror safe"
+        )
         for key, button in self._face_buttons.items():
-            active = key == self._face_mode or (key == "shift" and self._face_shift) or (key == "metro" and self._face_metro)
+            active = (
+                key == self._face_mode
+                or (key == "shift" and self._face_shift)
+                or (key == "metro" and self._face_metro)
+            )
             _set_active(button, active)
         for lane, button in self._face_group_buttons.items():
             _set_active(button, lane == group)
@@ -373,7 +399,14 @@ def apply_hardware_face_patch(gui_module: Any) -> None:
                 if step == current:
                     fill = C.accent
                 canvas.create_rectangle(x0, y0, x1, y1, fill=fill, outline="")
-        canvas.create_text(6, 100, anchor="nw", fill=C.dim, font=("Consolas", 8), text="A/B/C/D composition mirror from app/device MIDI events")
+        canvas.create_text(
+            6,
+            100,
+            anchor="nw",
+            fill=C.dim,
+            font=("Consolas", 8),
+            text="A/B/C/D composition mirror from app/device MIDI events",
+        )
 
     app_class._build_mode_strip = _build_mode_strip
     app_class._build_main_controls = _build_main_controls
@@ -398,7 +431,9 @@ def apply_hardware_face_patch(gui_module: Any) -> None:
     app_class._hardware_face_patch_installed = True
 
 
-def _button(tk, parent, label: str, command, *, bg: str | None = None, width: int = 8, small: bool = False):
+def _button(
+    tk, parent, label: str, command, *, bg: str | None = None, width: int = 8, small: bool = False
+):
     return tk.Button(
         parent,
         text=label,

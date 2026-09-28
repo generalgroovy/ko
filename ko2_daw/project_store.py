@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import json
+import tempfile
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
-import json
 from pathlib import Path
-import tempfile
 
 
 @dataclass
@@ -39,7 +39,9 @@ class SafeProjectStore:
             backup.write_bytes(target.read_bytes())
 
         payload = json.dumps(asdict(snapshot), indent=2, sort_keys=True)
-        with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False, dir=target.parent) as handle:
+        with tempfile.NamedTemporaryFile(
+            "w", encoding="utf-8", delete=False, dir=target.parent
+        ) as handle:
             handle.write(payload)
             handle.write("\n")
             temp_name = handle.name

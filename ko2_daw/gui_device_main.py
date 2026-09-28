@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from ko2_daw.midi import MidiMessage
 
@@ -285,7 +286,9 @@ def apply_device_main_patch(gui_module: Any) -> None:
             self.device_buttons[key] = button
             self._register_control(key, control.label, control.kind)
 
-        open_files = self._make_button(right, "DEVICE FILES", self._show_device_file_explorer, pale=True)
+        open_files = self._make_button(
+            right, "DEVICE FILES", self._show_device_file_explorer, pale=True
+        )
         open_files.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(12, 3))
         self.device_buttons["device_files"] = open_files
         self._register_control("device_files", "DEVICE FILES", "window")
@@ -380,7 +383,9 @@ def apply_device_main_patch(gui_module: Any) -> None:
     def _device_group(self, group: str) -> None:
         self.group.set(group)
         self.session.selected_group = group
-        self._send_midi(MidiMessage.program_change(GROUP_PROGRAMS[group], channel=self.config.midi_channel))
+        self._send_midi(
+            MidiMessage.program_change(GROUP_PROGRAMS[group], channel=self.config.midi_channel)
+        )
         self._mark_control(f"group_{group.lower()}", "app")
         self._set_action(f"group {group}")
 
@@ -396,7 +401,9 @@ def apply_device_main_patch(gui_module: Any) -> None:
 
     def _device_cc(self, key: str, control: int, value) -> None:
         midi_value = int(float(value))
-        self._send_midi(MidiMessage.control_change(control, midi_value, channel=self.config.midi_channel))
+        self._send_midi(
+            MidiMessage.control_change(control, midi_value, channel=self.config.midi_channel)
+        )
         self._mark_control(key, "app", str(midi_value))
         self._set_action(f"{key} {midi_value}")
 
@@ -409,7 +416,7 @@ def apply_device_main_patch(gui_module: Any) -> None:
         bpm = float(value)
         self._set_bpm(bpm)
         self.device_mode = "tempo"
-        self._mark_control("bpm", "app", str(int(round(bpm))))
+        self._mark_control("bpm", "app", str(round(bpm)))
 
     def _send_midi(self, message: MidiMessage) -> bool:
         result = original_send_midi(self, message)

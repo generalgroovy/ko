@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import wave
+from pathlib import Path
 
 from ko2_daw.app import main
 from ko2_daw.device_transfer import (
     DeviceDownloadArtifact,
     DeviceDownloadLimits,
-    DeviceFileDownload,
     DeviceFileClient,
+    DeviceFileDownload,
     find_latest_device_artifact,
     pcm_to_wav_bytes,
     save_device_download,
@@ -22,16 +22,15 @@ from ko2_daw.te_sysex import (
     BIT_REQUEST_ID_AVAILABLE,
     SYSEX_END,
     SYSEX_START,
-    TEFileCommand,
     TE_ID,
     TE_MARKER,
+    TEFileCommand,
     build_file_get_data_payload,
     build_file_get_init_payload,
     build_te_frame,
     pack_to_7bit_payload,
     parse_te_frame,
 )
-
 
 PCM_DATA = bytes(range(64)) * 8
 METADATA = {
@@ -63,9 +62,7 @@ class FakeDeviceExchange:
             page = int.from_bytes(payload[2:4], "big")
             chunk = PCM_DATA[page * 324 : (page + 1) * 324]
             response_payload = page.to_bytes(2, "big") + chunk
-        elif payload[:2] == bytes(
-            [TEFileCommand.METADATA, TEFileCommand.METADATA_GET]
-        ):
+        elif payload[:2] == bytes([TEFileCommand.METADATA, TEFileCommand.METADATA_GET]):
             page = int.from_bytes(payload[4:6], "big")
             body = json.dumps({**METADATA, "crc": 2655139083}).encode("utf-8") + b"\x00"
             response_payload = page.to_bytes(2, "big") + body

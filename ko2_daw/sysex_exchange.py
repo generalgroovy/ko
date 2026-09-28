@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import threading
 import time
+from dataclasses import dataclass, field
 
 from ko2_daw.config import DAWConfig, DeviceSafetyConfig
 from ko2_daw.controller import DAWController
@@ -83,7 +83,9 @@ def send_read_only_sysex_probe(
         sysex_enabled=True,
         max_sysex_bytes=max(1024, len(frame) + 16),
     )
-    controller = DAWController(config=DAWConfig(safety=safety), backend=backend, output_port=output_port)
+    controller = DAWController(
+        config=DAWConfig(safety=safety), backend=backend, output_port=output_port
+    )
     monitor.start()
     try:
         controller.send(MidiMessage.sysex(frame))

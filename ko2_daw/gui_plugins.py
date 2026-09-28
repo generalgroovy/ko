@@ -8,9 +8,9 @@ reliable desktop app.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from importlib import import_module
-import os
 from typing import Any
 
 
@@ -35,10 +35,19 @@ GUI_PLUGINS: tuple[GuiPlugin, ...] = (
     GuiPlugin("midi-detection", "ko2_daw.gui_midi_detection", "apply_midi_detection_patch", 20),
     GuiPlugin("detection-menu", "ko2_daw.gui_detection_menu", "apply_detection_menu_patch", 30),
     GuiPlugin("communication", "ko2_daw.gui_comm_panel", "apply_comm_panel_patch", 40),
-    GuiPlugin("hardware-explorer", "ko2_daw.hardware_explorer", "apply_hardware_explorer_patch", 50),
+    GuiPlugin(
+        "hardware-explorer", "ko2_daw.hardware_explorer", "apply_hardware_explorer_patch", 50
+    ),
     GuiPlugin("scrollbars", "ko2_daw.gui_scrollbars", "apply_hardware_scrollbar_patch", 60),
-    GuiPlugin("file-explorer-window", "ko2_daw.gui_file_explorer_window", "apply_file_explorer_window_patch", 70),
-    GuiPlugin("connection-guard", "ko2_daw.gui_connection_guard", "apply_connection_guard_patch", 80),
+    GuiPlugin(
+        "file-explorer-window",
+        "ko2_daw.gui_file_explorer_window",
+        "apply_file_explorer_window_patch",
+        70,
+    ),
+    GuiPlugin(
+        "connection-guard", "ko2_daw.gui_connection_guard", "apply_connection_guard_patch", 80
+    ),
     GuiPlugin("state-poll", "ko2_daw.gui_state_poll", "apply_state_poll_patch", 90),
     GuiPlugin("performance", "ko2_daw.gui_performance", "apply_performance_patch", 100),
     GuiPlugin("audio-studio", "ko2_daw.gui_audio_studio", "apply_audio_studio_patch", 103),
@@ -50,8 +59,20 @@ GUI_PLUGINS: tuple[GuiPlugin, ...] = (
     GuiPlugin("device-main", "ko2_daw.gui_device_main", "apply_device_main_patch", 200, True),
     GuiPlugin("song-timeline", "ko2_daw.gui_song_timeline", "apply_song_timeline_patch", 210, True),
     GuiPlugin("segment-grid", "ko2_daw.gui_segment_grid", "apply_segment_grid_patch", 220, True),
-    GuiPlugin("all-groups-matrix", "ko2_daw.gui_all_groups_matrix", "apply_all_groups_matrix_patch", 230, True),
-    GuiPlugin("visual-stability", "ko2_daw.gui_visual_stability", "apply_visual_stability_patch", 1000, True),
+    GuiPlugin(
+        "all-groups-matrix",
+        "ko2_daw.gui_all_groups_matrix",
+        "apply_all_groups_matrix_patch",
+        230,
+        True,
+    ),
+    GuiPlugin(
+        "visual-stability",
+        "ko2_daw.gui_visual_stability",
+        "apply_visual_stability_patch",
+        1000,
+        True,
+    ),
 )
 
 
@@ -72,11 +93,7 @@ def ordered_plugins(*, include_experimental: bool | None = None) -> tuple[GuiPlu
 
     if include_experimental is None:
         include_experimental = gui_mode() == "experimental"
-    plugins = [
-        plugin
-        for plugin in GUI_PLUGINS
-        if include_experimental or not plugin.experimental
-    ]
+    plugins = [plugin for plugin in GUI_PLUGINS if include_experimental or not plugin.experimental]
     return tuple(sorted(plugins, key=lambda plugin: (plugin.order, plugin.name)))
 
 

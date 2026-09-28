@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-from pathlib import Path
+import logging
 import queue
 import threading
 import time
+from datetime import datetime
 from typing import Any
 
 from ko2_daw.audio_timeline import (
@@ -152,7 +152,10 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
             font=("Consolas", 10, "bold"),
         )
         status.grid(row=0, column=2, sticky="e")
-        self._tip(title, "Non-destructive stereo audio timeline for KO II samples, resampling, capture, editing, mixing, and WAV export.")
+        self._tip(
+            title,
+            "Non-destructive stereo audio timeline for KO II samples, resampling, capture, editing, mixing, and WAV export.",
+        )
         self._tip(name, "Audio project name stored in the editable JSON session.")
         self._tip(status, "Current import, recording, rendering, or preview state.")
 
@@ -197,15 +200,55 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
         self._tip(master, "Master gain applied after clip and track gain.")
 
         actions = (
-            ("IMPORT", self._audio_import, "#efeadf", "Import a PCM WAV onto the selected audio track at the edit cursor."),
-            ("DEVICE WAV", self._audio_import_device_wav, "#efeadf", "Import a previously downloaded EP-133 WAV from the immutable device library."),
-            ("REC", self._audio_record, "#dc493a", "Record the selected Windows audio input into the first armed track."),
-            ("KO II BOUNCE", self._audio_bounce_ko2, "#f2c230", "Run the MIDI arranger against the connected EP-133 while capturing its analog output to an armed audio track."),
-            ("STOP REC", self._audio_stop_record, "#efeadf", "Request a clean stop after the current WinMM capture buffer."),
-            ("PLAY MIX", self._audio_preview_mix, "#88b04b", "Render a temporary current mix and play it through Windows audio."),
+            (
+                "IMPORT",
+                self._audio_import,
+                "#efeadf",
+                "Import a PCM WAV onto the selected audio track at the edit cursor.",
+            ),
+            (
+                "DEVICE WAV",
+                self._audio_import_device_wav,
+                "#efeadf",
+                "Import a previously downloaded EP-133 WAV from the immutable device library.",
+            ),
+            (
+                "REC",
+                self._audio_record,
+                "#dc493a",
+                "Record the selected Windows audio input into the first armed track.",
+            ),
+            (
+                "KO II BOUNCE",
+                self._audio_bounce_ko2,
+                "#f2c230",
+                "Run the MIDI arranger against the connected EP-133 while capturing its analog output to an armed audio track.",
+            ),
+            (
+                "STOP REC",
+                self._audio_stop_record,
+                "#efeadf",
+                "Request a clean stop after the current WinMM capture buffer.",
+            ),
+            (
+                "PLAY MIX",
+                self._audio_preview_mix,
+                "#88b04b",
+                "Render a temporary current mix and play it through Windows audio.",
+            ),
             ("STOP", stop_wav, "#efeadf", "Stop local WAV playback."),
-            ("RENDER", self._audio_render_dialog, "#efeadf", "Render a stereo 16-bit PCM WAV with optional peak normalization."),
-            ("SAVE", self._audio_save, "#efeadf", "Save the non-destructive audio project as atomic JSON."),
+            (
+                "RENDER",
+                self._audio_render_dialog,
+                "#efeadf",
+                "Render a stereo 16-bit PCM WAV with optional peak normalization.",
+            ),
+            (
+                "SAVE",
+                self._audio_save,
+                "#efeadf",
+                "Save the non-destructive audio project as atomic JSON.",
+            ),
             ("LOAD", self._audio_load, "#efeadf", "Load and validate an audio project JSON file."),
             ("UNDO", self._audio_undo, "#efeadf", "Undo the latest timeline or mixer edit."),
             ("REDO", self._audio_redo, "#efeadf", "Redo the latest undone audio edit."),
@@ -261,12 +304,19 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
         tree.grid(row=1, column=0, sticky="nsew", pady=(5, 4))
         tree.bind("<<TreeviewSelect>>", lambda _event: self._audio_track_selected())
         self.audio_track_tree = tree
-        self._tip(tree, "Select a track. M, S, R indicate mute, solo, and record arm; gain and pan are non-destructive.")
+        self._tip(
+            tree,
+            "Select a track. M, S, R indicate mute, solo, and record arm; gain and pan are non-destructive.",
+        )
         row = tk.Frame(parent, bg="#bdb7aa", padx=4, pady=4)
         row.grid(row=2, column=0, sticky="ew")
         for text, command, tip in (
             ("+", self._audio_add_track, "Add a new audio track."),
-            ("-", self._audio_remove_track, "Delete the selected track and its clips after confirmation."),
+            (
+                "-",
+                self._audio_remove_track,
+                "Delete the selected track and its clips after confirmation.",
+            ),
         ):
             button = tk.Button(row, text=text, command=command, bg="#efeadf", width=3)
             button.pack(side=tk.LEFT, padx=2)
@@ -317,7 +367,9 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
             bg="#efeadf",
         )
         apply_button.grid(row=4, column=0, columnspan=2, sticky="ew")
-        self._tip(apply_button, "Commit track name, gain, pan, mute, solo, and arm as one undoable edit.")
+        self._tip(
+            apply_button, "Commit track name, gain, pan, mute, solo, and arm as one undoable edit."
+        )
 
     def _build_audio_timeline(self, parent) -> None:
         parent.columnconfigure(0, weight=1)
@@ -359,9 +411,14 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
             bg="#bdb7aa",
         )
         snap.pack(side=tk.LEFT)
-        self._tip(cursor, "Edit cursor in seconds. Empty timeline clicks move it; split and import use it.")
+        self._tip(
+            cursor,
+            "Edit cursor in seconds. Empty timeline clicks move it; split and import use it.",
+        )
         self._tip(zoom, "Horizontal pixels per second.")
-        self._tip(snap, "Snap cursor and dragged clips to the nearest sixteenth note at project BPM.")
+        self._tip(
+            snap, "Snap cursor and dragged clips to the nearest sixteenth note at project BPM."
+        )
 
         shell = tk.Frame(parent, bg="#171915")
         shell.grid(row=2, column=0, sticky="nsew")
@@ -380,7 +437,10 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
         canvas.bind("<ButtonRelease-1>", self._audio_timeline_release)
         canvas.bind("<Double-1>", lambda _event: self._audio_audition_clip())
         self.audio_timeline_canvas = canvas
-        self._tip(canvas, "Click to set cursor or select a clip. Drag clips horizontally or between tracks. Double-click previews the selected source WAV.")
+        self._tip(
+            canvas,
+            "Click to set cursor or select a clip. Drag clips horizontally or between tracks. Double-click previews the selected source WAV.",
+        )
 
     def _build_audio_inspector(self, parent, devices) -> None:
         parent.columnconfigure(0, weight=1)
@@ -420,7 +480,11 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
         toggles = tk.Frame(editor, bg="#bdb7aa")
         toggles.grid(row=8, column=0, columnspan=2, sticky="ew", pady=4)
         for text, variable, tip in (
-            ("REVERSE", self.audio_clip_reverse, "Play source frames backwards without changing the source file."),
+            (
+                "REVERSE",
+                self.audio_clip_reverse,
+                "Play source frames backwards without changing the source file.",
+            ),
             ("MUTE", self.audio_clip_mute, "Exclude this clip from preview and render."),
         ):
             check = tk.Checkbutton(
@@ -445,8 +509,16 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
         actions.grid(row=2, column=0, sticky="ew")
         for text, command, tip in (
             ("SPLIT", self._audio_split_clip, "Split the selected clip at the edit cursor."),
-            ("DUP", self._audio_duplicate_clip, "Duplicate the selected clip immediately after itself."),
-            ("DELETE", self._audio_delete_clip, "Delete the selected clip without touching its source WAV."),
+            (
+                "DUP",
+                self._audio_duplicate_clip,
+                "Duplicate the selected clip immediately after itself.",
+            ),
+            (
+                "DELETE",
+                self._audio_delete_clip,
+                "Delete the selected clip without touching its source WAV.",
+            ),
             ("AUDITION", self._audio_audition_clip, "Play the selected source WAV locally."),
         ):
             button = tk.Button(actions, text=text, command=command, bg="#efeadf")
@@ -489,7 +561,10 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
             state="readonly",
         )
         record_rate.grid(row=2, column=1, sticky="ew", padx=(5, 0), pady=2)
-        self._tip(input_combo, "Windows WinMM audio input. QUAD-CAPTURE MAIN/1-2 can record the KO II analog output.")
+        self._tip(
+            input_combo,
+            "Windows WinMM audio input. QUAD-CAPTURE MAIN/1-2 can record the KO II analog output.",
+        )
         self._tip(duration, "Safety-bounded maximum capture duration. STOP REC can finish earlier.")
         self._tip(record_rate, "Native capture sample rate; the timeline resamples during mixdown.")
         note = tk.Label(
@@ -520,7 +595,10 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
         canvas.grid(row=0, column=0, sticky="nsew")
         canvas.bind("<Configure>", lambda _event: self._draw_audio_source_detail())
         self.audio_source_canvas = canvas
-        self._tip(canvas, "Waveform for the selected trimmed source range; fades are shown as diagonal guides.")
+        self._tip(
+            canvas,
+            "Waveform for the selected trimmed source range; fades are shown as diagonal guides.",
+        )
         info = tk.Label(
             detail,
             textvariable=self.audio_source_info,
@@ -578,7 +656,7 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
             messagebox.showerror("KO II Audio Studio", str(exc))
             return
         capture_dir = self.project_root / "audio_captures"
-        path = capture_dir / f"capture-{datetime.now().strftime('%Y%m%d-%H%M%S')}.wav"
+        path = capture_dir / f"capture-{datetime.now().astimezone().strftime('%Y%m%d-%H%M%S')}.wav"
         track_id = armed[0].track_id
         start_sec = self.audio_cursor_sec
         self.audio_record_stop.clear()
@@ -600,7 +678,10 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
                     ),
                 )
                 self.audio_queue.put(("capture-complete", result, track_id, start_sec))
-            except Exception as exc:
+            except (
+                # ruff: ignore[BLE001] Relay capture worker failures to the GUI queue.
+                Exception
+            ) as exc:
                 self.audio_queue.put(("error", "capture", exc))
 
         threading.Thread(target=worker, daemon=True).start()
@@ -641,14 +722,8 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
                 compile_arrangement,
             )
 
-            arranger_project = ArrangerProject.from_dict(
-                arranger_session.project.to_dict()
-            )
-            mode = (
-                self.arranger_mode.get()
-                if hasattr(self, "arranger_mode")
-                else "song"
-            )
+            arranger_project = ArrangerProject.from_dict(arranger_session.project.to_dict())
+            mode = self.arranger_mode.get() if hasattr(self, "arranger_mode") else "song"
             scene_id = arranger_session.selected_scene_id
             _events, beats = compile_arrangement(
                 arranger_project,
@@ -672,14 +747,14 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
         tail = 0.35
         capture_duration = music_duration + pre_roll + tail
         capture_dir = self.project_root / "audio_captures"
-        path = capture_dir / f"ko2-bounce-{datetime.now().strftime('%Y%m%d-%H%M%S')}.wav"
+        path = (
+            capture_dir / f"ko2-bounce-{datetime.now().astimezone().strftime('%Y%m%d-%H%M%S')}.wav"
+        )
         track_id = armed[0].track_id
         start_sec = self.audio_cursor_sec
         self.audio_record_stop.clear()
         self.audio_recording = True
-        self.audio_status.set(
-            f"KO II bounce / {music_duration:.2f}s / {device}"
-        )
+        self.audio_status.set(f"KO II bounce / {music_duration:.2f}s / {device}")
 
         def worker() -> None:
             result_box: list[object] = []
@@ -701,7 +776,10 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
                             ),
                         )
                     )
-                except Exception as exc:
+                except (
+                    # ruff: ignore[BLE001] Capture thread must report failures to its owning worker.
+                    Exception
+                ) as exc:
                     capture_errors.append(exc)
 
             capture_thread = threading.Thread(target=capture, daemon=True)
@@ -751,7 +829,10 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
                         music_duration,
                     )
                 )
-            except Exception as exc:
+            except (
+                # ruff: ignore[BLE001] Stop capture and transport before reporting bounce failure.
+                Exception
+            ) as exc:
                 self.audio_record_stop.set()
                 engine.stop()
                 capture_thread.join(timeout=2.0)
@@ -774,7 +855,10 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
             try:
                 result = render_audio_project(snapshot, path)
                 self.audio_queue.put(("preview-complete", result))
-            except Exception as exc:
+            except (
+                # ruff: ignore[BLE001] Relay preview worker failures to the GUI queue.
+                Exception
+            ) as exc:
                 self.audio_queue.put(("error", "preview", exc))
 
         threading.Thread(target=worker, daemon=True).start()
@@ -806,7 +890,10 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
             try:
                 result = render_audio_project(snapshot, path, normalize=normalize)
                 self.audio_queue.put(("render-complete", result))
-            except Exception as exc:
+            except (
+                # ruff: ignore[BLE001] Relay render worker failures to the GUI queue.
+                Exception
+            ) as exc:
                 self.audio_queue.put(("error", "render", exc))
 
         threading.Thread(target=worker, daemon=True).start()
@@ -831,18 +918,17 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
                         track_id=str(track_id),
                         start_sec=float(start_sec),
                     )
-                except Exception as exc:
+                except (
+                    # ruff: ignore[BLE001] Report capture import errors without stopping queue processing.
+                    Exception
+                ) as exc:
                     messagebox.showerror("KO II Audio Studio", str(exc))
                 else:
-                    self.audio_status.set(
-                        f"captured {result.duration_sec:.2f}s -> {clip.name}"
-                    )
+                    self.audio_status.set(f"captured {result.duration_sec:.2f}s -> {clip.name}")
                     self._refresh_audio_studio()
             elif kind == "bounce-progress":
                 _, done, total = event
-                self.audio_status.set(
-                    f"KO II bounce {float(done):.1f} / {float(total):.1f} sec"
-                )
+                self.audio_status.set(f"KO II bounce {float(done):.1f} / {float(total):.1f} sec")
             elif kind == "bounce-complete":
                 _, result, track_id, start_sec, pre_roll, music_duration = event
                 self.audio_recording = False
@@ -862,7 +948,10 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
                         source_in_sec=min(float(pre_roll), source_out - 0.001),
                         source_out_sec=source_out,
                     )
-                except Exception as exc:
+                except (
+                    # ruff: ignore[BLE001] Report bounce import errors without stopping queue processing.
+                    Exception
+                ) as exc:
                     messagebox.showerror("KO II Audio Studio", str(exc))
                 else:
                     self.audio_status.set(
@@ -874,10 +963,11 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
                 self.audio_busy = False
                 try:
                     play_wav(result.path)
-                    self.audio_status.set(
-                        f"playing mix / peak {result.peak:.3f}"
-                    )
-                except Exception as exc:
+                    self.audio_status.set(f"playing mix / peak {result.peak:.3f}")
+                except (
+                    # ruff: ignore[BLE001] Show native playback errors without stopping queue processing.
+                    Exception
+                ) as exc:
                     messagebox.showerror("KO II Audio Studio", str(exc))
             elif kind == "render-complete":
                 result = event[1]
@@ -1013,6 +1103,7 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
         try:
             play_wav(clip.path)
             self.audio_status.set(f"auditioning {clip.name}")
+        # ruff: ignore[BLE001] Show native audition errors in the GUI.
         except Exception as exc:
             messagebox.showerror("KO II Audio Studio", str(exc))
 
@@ -1443,23 +1534,21 @@ def apply_audio_studio_patch(gui_module: Any) -> None:
     def _show_audio_help(self) -> None:
         messagebox.showinfo(
             "KO II Audio Studio Guide",
-            "\n".join(
-                [
-                    "IMPORT places a PCM WAV on the selected track at the red edit cursor.",
-                    "DEVICE WAV opens the immutable EP-133 download library for local audio use.",
-                    "Click empty timeline space to set the cursor; drag clips in time or between tracks.",
-                    "SPLIT cuts the selected clip at the cursor without altering its source file.",
-                    "Clip edits include source trim, stretch, reverse, gain, pan, fades, and mute.",
-                    "Track edits include gain, pan, mute, solo, and record arm.",
-                    "REC captures a visible Windows input, normally QUAD-CAPTURE MAIN or 1-2.",
-                    "STOP REC finishes after the current WinMM buffer and imports the local WAV.",
-                    "PLAY MIX renders the current project to a temporary WAV before local playback.",
-                    "RENDER creates a stereo 16-bit WAV and can peak-normalize to -0.2 dBFS.",
-                    "SAVE stores only non-destructive project instructions and source paths.",
-                    "",
-                    "Audio capture and editing are PC-side. They never upload, delete, move, or",
-                    "rewrite EP-133 files. Downloaded device assets remain content-addressed.",
-                ]
+            (
+                "IMPORT places a PCM WAV on the selected track at the red edit cursor.\n"
+                "DEVICE WAV opens the immutable EP-133 download library for local audio use.\n"
+                "Click empty timeline space to set the cursor; drag clips in time or between tracks.\n"
+                "SPLIT cuts the selected clip at the cursor without altering its source file.\n"
+                "Clip edits include source trim, stretch, reverse, gain, pan, fades, and mute.\n"
+                "Track edits include gain, pan, mute, solo, and record arm.\n"
+                "REC captures a visible Windows input, normally QUAD-CAPTURE MAIN or 1-2.\n"
+                "STOP REC finishes after the current WinMM buffer and imports the local WAV.\n"
+                "PLAY MIX renders the current project to a temporary WAV before local playback.\n"
+                "RENDER creates a stereo 16-bit WAV and can peak-normalize to -0.2 dBFS.\n"
+                "SAVE stores only non-destructive project instructions and source paths.\n"
+                "\n"
+                "Audio capture and editing are PC-side. They never upload, delete, move, or\n"
+                "rewrite EP-133 files. Downloaded device assets remain content-addressed."
             ),
         )
 
@@ -1523,6 +1612,9 @@ def _find_menu(menu, label: str):
                 child = menu.entrycget(index, "menu")
                 return menu.nametowidget(child) if child else None
         except Exception:
+            logging.getLogger(__name__).debug(
+                "Optional menu discovery must tolerate missing GUI entries.", exc_info=True
+            )
             continue
     return None
 

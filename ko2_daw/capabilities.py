@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
+import threading
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-import threading
-import time
 
 from ko2_daw.config import DAWConfig, DeviceSafetyConfig
 from ko2_daw.controller import DAWController
 from ko2_daw.midi import MidiMessage, WinMMInputMonitor, WinMMMidiBackend, midi_capability_report
 from ko2_daw.routing import KO2Route, resolve_ko2_route
-from ko2_daw.sysex_exchange import decode_sysex_response, send_read_only_sysex_probe
+from ko2_daw.sysex_exchange import send_read_only_sysex_probe
 from ko2_daw.te_sysex import (
     TEFileCommand,
     build_file_init_payload,
@@ -20,7 +20,6 @@ from ko2_daw.te_sysex import (
     build_te_frame,
     build_universal_identity_request,
 )
-
 
 OFFICIAL_MIDI_REFERENCE_URL = "https://teenage.engineering/guides/ep-133/system"
 WEB_LAB_REFERENCE_URL = "https://generalgroovy.github.io/ko2/"
@@ -135,6 +134,7 @@ def run_device_capability_probe(
             )
         )
         return DeviceProbeReport(
+            # ruff: ignore[DTZ005] Preserve the existing local timestamp schema.
             timestamp=datetime.now().isoformat(timespec="seconds"),
             route=route,
             midi_report=midi_report,
@@ -159,6 +159,7 @@ def run_device_capability_probe(
 
     findings.extend(_base_findings(sysex_ok, file_ok, midi_ok))
     return DeviceProbeReport(
+        # ruff: ignore[DTZ005] Preserve the existing local timestamp schema.
         timestamp=datetime.now().isoformat(timespec="seconds"),
         route=route,
         midi_report=midi_report,
@@ -178,17 +179,38 @@ def _probe_sysex(route: KO2Route, observations: list[ProbeObservation]) -> bool:
     assert route.input_port and route.output_port
     probes = [
         ("identity", build_universal_identity_request()),
-        ("file-init", build_te_frame(TEFileCommand.COMMAND, build_file_init_payload(), request_id=1)),
-        ("list-root", build_te_frame(TEFileCommand.COMMAND, build_file_list_payload(0, 0), request_id=2)),
-        ("list-sounds", build_te_frame(TEFileCommand.COMMAND, build_file_list_payload(1000, 0), request_id=3)),
-        ("list-projects", build_te_frame(TEFileCommand.COMMAND, build_file_list_payload(2000, 0), request_id=4)),
+        (
+            "file-init",
+            build_te_frame(TEFileCommand.COMMAND, build_file_init_payload(), request_id=1),
+        ),
+        (
+            "list-root",
+            build_te_frame(TEFileCommand.COMMAND, build_file_list_payload(0, 0), request_id=2),
+        ),
+        (
+            "list-sounds",
+            build_te_frame(TEFileCommand.COMMAND, build_file_list_payload(1000, 0), request_id=3),
+        ),
+        (
+            "list-projects",
+            build_te_frame(TEFileCommand.COMMAND, build_file_list_payload(2000, 0), request_id=4),
+        ),
     ]
     ok = False
     for name, frame in probes:
         try:
-            result = send_read_only_sysex_probe(route.input_port, route.output_port, frame, timeout_sec=2.0)
-        except Exception as exc:
-            observations.append(ProbeObservation(name, sent=[f"sysex {len(frame)} bytes"], result="error", note=str(exc)))
+            result = send_read_only_sysex_probe(
+                route.input_port, route.output_port, frame, timeout_sec=2.0
+            )
+        except (
+            # ruff: ignore[BLE001] Record failed backend probes without aborting diagnostics.
+            Exception
+        ) as exc:
+            observations.append(
+                ProbeObservation(
+                    name, sent=[f"sysex {len(frame)} bytes"], result="error", note=str(exc)
+                )
+            )
             continue
         received = [response.summary for response in result.responses]
         for response in result.responses:
@@ -205,7 +227,9 @@ def _probe_sysex(route: KO2Route, observations: list[ProbeObservation]) -> bool:
                 name,
                 sent=[f"sysex {len(frame)} bytes"],
                 received=received,
-                result="ok" if result.responses else ("timeout" if result.timed_out else "no-response"),
+                result=(
+                    "ok" if result.responses else ("timeout" if result.timed_out else "no-response")
+                ),
                 note="read-only SysEx probe",
             )
         )
@@ -213,7 +237,9 @@ def _probe_sysex(route: KO2Route, observations: list[ProbeObservation]) -> bool:
     return ok
 
 
-def _probe_short_midi(route: KO2Route, observations: list[ProbeObservation], listen_seconds: float) -> bool:
+def _probe_short_midi(
+    route: KO2Route, observations: list[ProbeObservation], listen_seconds: float
+) -> bool:
     assert route.input_port and route.output_port
     received: list[MidiMessage] = []
     lock = threading.Lock()
@@ -225,12 +251,19 @@ def _probe_short_midi(route: KO2Route, observations: list[ProbeObservation], lis
     monitor = WinMMInputMonitor(route.input_port, observe, include_sysex=False)
     backend = WinMMMidiBackend()
     safety = DeviceSafetyConfig(dry_run=False, allowed_output_ports=(route.output_port,))
-    controller = DAWController(config=DAWConfig(clock_enabled=True, safety=safety), backend=backend, output_port=route.output_port)
+    controller = DAWController(
+        config=DAWConfig(clock_enabled=True, safety=safety),
+        backend=backend,
+        output_port=route.output_port,
+    )
     steps = [
         ("pad-a-dot-note", [MidiMessage.note_on(36, velocity=24), MidiMessage.note_off(36)]),
         ("transport-start-stop", [MidiMessage.start(), MidiMessage.stop()]),
         ("transport-continue-stop", [MidiMessage.continue_(), MidiMessage.stop()]),
-        ("clock-ticks", [MidiMessage.clock(), MidiMessage.clock(), MidiMessage.clock(), MidiMessage.stop()]),
+        (
+            "clock-ticks",
+            [MidiMessage.clock(), MidiMessage.clock(), MidiMessage.clock(), MidiMessage.stop()],
+        ),
         ("fader-cc1", [MidiMessage.control_change(1, 64)]),
         ("bank-select", [MidiMessage.control_change(0, 0), MidiMessage.control_change(32, 0)]),
         ("program-change-zero", [MidiMessage.program_change(0)]),
@@ -259,8 +292,13 @@ def _probe_short_midi(route: KO2Route, observations: list[ProbeObservation], lis
                         note="No response is still useful: most short MIDI commands are acted on by the device, not echoed.",
                     )
                 )
-            except Exception as exc:
-                observations.append(ProbeObservation(name, sent=sent, result="error", note=str(exc)))
+            except (
+                # ruff: ignore[BLE001] Record failed MIDI probes and continue the capability report.
+                Exception
+            ) as exc:
+                observations.append(
+                    ProbeObservation(name, sent=sent, result="error", note=str(exc))
+                )
     finally:
         monitor.stop()
         backend.close()

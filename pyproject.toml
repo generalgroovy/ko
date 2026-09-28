@@ -18,8 +18,8 @@ midi = [
   "python-rtmidi>=1.5.0"
 ]
 dev = [
-  "black>=24.0",
-  "ruff>=0.5.0",
+  "black==26.5.1",
+  "ruff==0.16.9",
   "pytest>=8.0"
 ]
 build = [
@@ -35,6 +35,7 @@ exclude = ["daw_projects*", "packaging*", "tests*", "docs*"]
 
 [tool.black]
 line-length = 100
+target-version = ["py311"]
 
 [tool.ruff]
 line-length = 100

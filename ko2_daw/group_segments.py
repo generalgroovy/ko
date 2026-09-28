@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import re
-from typing import Iterable
+from collections.abc import Iterable
+from dataclasses import dataclass, field
 
 GROUPS = ("A", "B", "C", "D")
 SEGMENT_NUMBERS = tuple(range(1, 100))
@@ -117,7 +117,9 @@ class SegmentBank:
             for number in SEGMENT_NUMBERS:
                 yield self.slots[group][number]
 
-    def ingest_file_entry(self, *, path: str, kind: str, node: str, name: str, size: str, status: str) -> SegmentSlot | None:
+    def ingest_file_entry(
+        self, *, path: str, kind: str, node: str, name: str, size: str, status: str
+    ) -> SegmentSlot | None:
         text = " ".join(str(part or "") for part in (path, kind, node, name, size, status))
         found = extract_segment_id(text)
         if not found:
@@ -134,7 +136,9 @@ class SegmentBank:
         )
         return slot
 
-    def mark_midi_note(self, note: int, step: int, component: str, *, evidence: str) -> SegmentSlot | None:
+    def mark_midi_note(
+        self, note: int, step: int, component: str, *, evidence: str
+    ) -> SegmentSlot | None:
         mapped = note_to_group_segment(note)
         if not mapped:
             return None

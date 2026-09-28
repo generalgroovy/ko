@@ -6,14 +6,13 @@ The module works without external MIDI packages. If `mido` and a backend such as
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import ctypes
 import importlib.util
 import sys
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Protocol
-
 
 DATA_BYTE_MAX = 127
 CHANNEL_MAX = 15
@@ -50,39 +49,39 @@ class MidiMessage:
             _validate_range("program", self.program, 0, DATA_BYTE_MAX)
 
     @classmethod
-    def note_on(cls, note: int, velocity: int = 96, channel: int = 0) -> "MidiMessage":
+    def note_on(cls, note: int, velocity: int = 96, channel: int = 0) -> MidiMessage:
         return cls("note_on", channel=channel, note=note, velocity=velocity)
 
     @classmethod
-    def note_off(cls, note: int, velocity: int = 0, channel: int = 0) -> "MidiMessage":
+    def note_off(cls, note: int, velocity: int = 0, channel: int = 0) -> MidiMessage:
         return cls("note_off", channel=channel, note=note, velocity=velocity)
 
     @classmethod
-    def control_change(cls, control: int, value: int, channel: int = 0) -> "MidiMessage":
+    def control_change(cls, control: int, value: int, channel: int = 0) -> MidiMessage:
         return cls("control_change", channel=channel, control=control, value=value)
 
     @classmethod
-    def program_change(cls, program: int, channel: int = 0) -> "MidiMessage":
+    def program_change(cls, program: int, channel: int = 0) -> MidiMessage:
         return cls("program_change", channel=channel, program=program)
 
     @classmethod
-    def clock(cls) -> "MidiMessage":
+    def clock(cls) -> MidiMessage:
         return cls("clock")
 
     @classmethod
-    def start(cls) -> "MidiMessage":
+    def start(cls) -> MidiMessage:
         return cls("start")
 
     @classmethod
-    def stop(cls) -> "MidiMessage":
+    def stop(cls) -> MidiMessage:
         return cls("stop")
 
     @classmethod
-    def sysex(cls, data: bytes) -> "MidiMessage":
+    def sysex(cls, data: bytes) -> MidiMessage:
         return cls("sysex", data=bytes(data))
 
     @classmethod
-    def continue_(cls) -> "MidiMessage":
+    def continue_(cls) -> MidiMessage:
         return cls("continue")
 
     def to_mido(self):
@@ -92,11 +91,17 @@ class MidiMessage:
         import mido
 
         if self.kind == "note_on":
-            return mido.Message("note_on", channel=self.channel, note=self.note, velocity=self.velocity)
+            return mido.Message(
+                "note_on", channel=self.channel, note=self.note, velocity=self.velocity
+            )
         if self.kind == "note_off":
-            return mido.Message("note_off", channel=self.channel, note=self.note, velocity=self.velocity)
+            return mido.Message(
+                "note_off", channel=self.channel, note=self.note, velocity=self.velocity
+            )
         if self.kind == "control_change":
-            return mido.Message("control_change", channel=self.channel, control=self.control, value=self.value)
+            return mido.Message(
+                "control_change", channel=self.channel, control=self.control, value=self.value
+            )
         if self.kind == "program_change":
             return mido.Message("program_change", channel=self.channel, program=self.program)
         if self.kind in {"clock", "start", "stop", "continue"}:
@@ -120,14 +125,11 @@ class MidiMessage:
 class MidiBackend(Protocol):
     """Backend interface for dry-run and hardware MIDI adapters."""
 
-    def list_input_ports(self) -> list[str]:
-        ...
+    def list_input_ports(self) -> list[str]: ...
 
-    def list_output_ports(self) -> list[str]:
-        ...
+    def list_output_ports(self) -> list[str]: ...
 
-    def send(self, port_name: str | None, message: MidiMessage) -> None:
-        ...
+    def send(self, port_name: str | None, message: MidiMessage) -> None: ...
 
 
 class DryRunMidiBackend:
@@ -153,9 +155,7 @@ class MidoMidiBackend:
 
     def __init__(self):
         missing = [
-            package
-            for package in ("mido", "rtmidi")
-            if importlib.util.find_spec(package) is None
+            package for package in ("mido", "rtmidi") if importlib.util.find_spec(package) is None
         ]
         if missing:
             raise RuntimeError(
@@ -263,14 +263,16 @@ class WinMMInputMonitor:
         )
         self._callback_ref = self._callback_type(self._handle_message)
         self._started = False
-        self._sysex_buffers: list[tuple[ctypes.Array, "_MidiHeader"]] = []
+        self._sysex_buffers: list[tuple[ctypes.Array, _MidiHeader]] = []
 
     def start(self) -> None:
         inputs, _, _ = _winmm_port_names()
         try:
             device_id = inputs.index(self.port_name)
         except ValueError as exc:
-            raise ValueError(f"MIDI input port is not visible through WinMM: {self.port_name}") from exc
+            raise ValueError(
+                f"MIDI input port is not visible through WinMM: {self.port_name}"
+            ) from exc
         result = self._winmm.midiInOpen(
             ctypes.byref(self._handle),
             device_id,
@@ -331,14 +333,18 @@ class WinMMInputMonitor:
             )
             if result != 0:
                 raise RuntimeError(f"WinMM midiInPrepareHeader failed with code {result}.")
-            result = self._winmm.midiInAddBuffer(self._handle, ctypes.byref(header), ctypes.sizeof(header))
+            result = self._winmm.midiInAddBuffer(
+                self._handle, ctypes.byref(header), ctypes.sizeof(header)
+            )
             if result != 0:
                 raise RuntimeError(f"WinMM midiInAddBuffer failed with code {result}.")
             self._sysex_buffers.append((buffer, header))
 
     def _unprepare_sysex_buffers(self) -> None:
         for _buffer, header in self._sysex_buffers:
-            self._winmm.midiInUnprepareHeader(self._handle, ctypes.byref(header), ctypes.sizeof(header))
+            self._winmm.midiInUnprepareHeader(
+                self._handle, ctypes.byref(header), ctypes.sizeof(header)
+            )
         self._sysex_buffers.clear()
 
     def _handle_sysex_buffer(self, param1: ctypes.c_void_p) -> None:
@@ -368,8 +374,12 @@ def midi_capability_report() -> dict[str, object]:
         "mido_installed": importlib.util.find_spec("mido") is not None,
         "rtmidi_installed": importlib.util.find_spec("rtmidi") is not None,
         "native_winmm_available": sys.platform == "win32" and winmm_error is None,
-        "live_midi_available": sys.platform == "win32" and winmm_error is None and bool(winmm_outputs),
-        "live_backend": "winmm" if sys.platform == "win32" and winmm_error is None and winmm_outputs else None,
+        "live_midi_available": sys.platform == "win32"
+        and winmm_error is None
+        and bool(winmm_outputs),
+        "live_backend": (
+            "winmm" if sys.platform == "win32" and winmm_error is None and winmm_outputs else None
+        ),
         "input_ports": winmm_inputs,
         "output_ports": winmm_outputs,
         "port_source": "winmm",
@@ -377,9 +387,7 @@ def midi_capability_report() -> dict[str, object]:
         "ko2_usb_connected": bool(ko2_usb_devices),
         "ko2_usb_devices": ko2_usb_devices,
         "ko2_midi_ports": [
-            port
-            for port in [*winmm_inputs, *winmm_outputs]
-            if _looks_like_ko2_port(port)
+            port for port in [*winmm_inputs, *winmm_outputs] if _looks_like_ko2_port(port)
         ],
         "ko2_midi_ready": False,
         "winmm_error": winmm_error,
@@ -401,17 +409,24 @@ def midi_capability_report() -> dict[str, object]:
             report["port_source"] = "mido"
             report["live_midi_available"] = True
             report["live_backend"] = "mido"
-        except Exception as exc:
+        except (
+            # ruff: ignore[BLE001] Diagnostic reports retain optional backend failures as data.
+            Exception
+        ) as exc:
             report["mido_error"] = str(exc)
     if report["ko2_usb_connected"] and not report["ko2_midi_ports"]:
-        ko2_classes = sorted({device.get("usb_class") for device in ko2_usb_devices if device.get("usb_class")})
+        ko2_classes = sorted(
+            {device.get("usb_class") for device in ko2_usb_devices if device.get("usb_class")}
+        )
         report["hints"] = [
             *report["hints"],
             "EP-133 is connected over USB, but Windows exposes it as USB Audio rather than a MIDI input/output endpoint.",
             f"Detected EP-133 USB classes: {', '.join(ko2_classes) or 'unknown'}. USB MIDI streaming would normally appear as Class_01/SubClass_03.",
         ]
     report["ko2_midi_ready"] = bool(report["ko2_midi_ports"])
-    if not any(_looks_like_ko2_port(port) for port in [*report["input_ports"], *report["output_ports"]]):
+    if not any(
+        _looks_like_ko2_port(port) for port in [*report["input_ports"], *report["output_ports"]]
+    ):
         report["hints"] = [
             *report["hints"],
             "No visible port name looks like KO II; check the cable, device USB mode, drivers, or MIDI interface routing.",
@@ -473,11 +488,23 @@ def _send_winmm_sysex(
 
 def _to_winmm_short_message(message: MidiMessage) -> int:
     if message.kind == "note_on":
-        return (0x90 | int(message.channel or 0)) | (int(message.note or 0) << 8) | (int(message.velocity or 0) << 16)
+        return (
+            (0x90 | int(message.channel or 0))
+            | (int(message.note or 0) << 8)
+            | (int(message.velocity or 0) << 16)
+        )
     if message.kind == "note_off":
-        return (0x80 | int(message.channel or 0)) | (int(message.note or 0) << 8) | (int(message.velocity or 0) << 16)
+        return (
+            (0x80 | int(message.channel or 0))
+            | (int(message.note or 0) << 8)
+            | (int(message.velocity or 0) << 16)
+        )
     if message.kind == "control_change":
-        return (0xB0 | int(message.channel or 0)) | (int(message.control or 0) << 8) | (int(message.value or 0) << 16)
+        return (
+            (0xB0 | int(message.channel or 0))
+            | (int(message.control or 0) << 8)
+            | (int(message.value or 0) << 16)
+        )
     if message.kind == "program_change":
         return (0xC0 | int(message.channel or 0)) | (int(message.program or 0) << 8)
     if message.kind == "clock":
@@ -569,6 +596,7 @@ def _winmm_port_names() -> tuple[list[str], list[str], str | None]:
             if result == 0:
                 inputs.append(caps.szPname)
         return inputs, outputs, None
+    # ruff: ignore[BLE001] Return native API failures as diagnostic data.
     except Exception as exc:
         return [], [], str(exc)
 
@@ -596,14 +624,21 @@ def _usb_device_report() -> list[dict[str, str]]:
                                     "hardware_id": vendor_id,
                                     "instance": instance,
                                     "friendly_name": _registry_value(instance_key, "FriendlyName"),
-                                    "device_description": _registry_value(instance_key, "DeviceDesc"),
+                                    "device_description": _registry_value(
+                                        instance_key, "DeviceDesc"
+                                    ),
                                     "manufacturer": _registry_value(instance_key, "Mfg"),
                                     "service": _registry_value(instance_key, "Service"),
-                                    "usb_class": _usb_class_from_ids(_registry_values(instance_key, "CompatibleIDs")),
-                                    "compatible_ids": "; ".join(_registry_values(instance_key, "CompatibleIDs")),
+                                    "usb_class": _usb_class_from_ids(
+                                        _registry_values(instance_key, "CompatibleIDs")
+                                    ),
+                                    "compatible_ids": "; ".join(
+                                        _registry_values(instance_key, "CompatibleIDs")
+                                    ),
                                 }
                             )
         return devices
+    # ruff: ignore[BLE001] Optional USB metadata must not prevent MIDI discovery.
     except Exception:
         return []
 
@@ -642,7 +677,9 @@ def _usb_class_from_ids(compatible_ids: list[str]) -> str:
     return ""
 
 
-def _has_usb_class(compatible_ids: list[str], class_id: str, subclass_id: str | None = None) -> bool:
+def _has_usb_class(
+    compatible_ids: list[str], class_id: str, subclass_id: str | None = None
+) -> bool:
     class_patterns = (f"USB\\Class_{class_id}", f"&Class_{class_id}")
     subclass_pattern = f"SubClass_{subclass_id}" if subclass_id is not None else None
     return any(

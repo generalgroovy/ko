@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 import sys
 import tempfile
 import time
 import wave
+from pathlib import Path
 
 from ko2_daw.audio_timeline import AudioSession, render_audio_project
+from ko2_daw.capabilities import run_device_capability_probe, save_capability_report
 from ko2_daw.config import DAWConfig, DeviceSafetyConfig
 from ko2_daw.controller import DAWController
-from ko2_daw.capabilities import run_device_capability_probe, save_capability_report
 from ko2_daw.device_snapshot import SnapshotLimits, capture_device_snapshot, save_device_snapshot
 from ko2_daw.device_transfer import (
     DeviceDownloadLimits,
@@ -21,7 +21,14 @@ from ko2_daw.device_transfer import (
     save_device_download,
 )
 from ko2_daw.diagnostics import readiness_report
-from ko2_daw.midi import DryRunMidiBackend, MidiBackend, MidoMidiBackend, WinMMInputMonitor, WinMMMidiBackend, midi_capability_report
+from ko2_daw.midi import (
+    DryRunMidiBackend,
+    MidiBackend,
+    MidoMidiBackend,
+    WinMMInputMonitor,
+    WinMMMidiBackend,
+    midi_capability_report,
+)
 from ko2_daw.native_audio import list_wave_input_devices, record_wave_input
 from ko2_daw.project_catalog import (
     backup_project_archives_live,
@@ -50,14 +57,30 @@ from ko2_daw.te_sysex import (
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Safe MIDI DAW controller for sampler experiments.")
-    parser.add_argument("--gui", action="store_true", help="Open the KO II-style desktop control surface.")
-    parser.add_argument("--status", action="store_true", help="Print startup status without opening the GUI.")
-    parser.add_argument("--list", action="store_true", help="List visible MIDI capability and ports.")
+    parser = argparse.ArgumentParser(
+        description="Safe MIDI DAW controller for sampler experiments."
+    )
+    parser.add_argument(
+        "--gui", action="store_true", help="Open the KO II-style desktop control surface."
+    )
+    parser.add_argument(
+        "--status", action="store_true", help="Print startup status without opening the GUI."
+    )
+    parser.add_argument(
+        "--list", action="store_true", help="List visible MIDI capability and ports."
+    )
     parser.add_argument("--doctor", action="store_true", help="Run device readiness diagnostics.")
-    parser.add_argument("--usb-diagnose", action="store_true", help="Print detailed EP-133 USB class diagnostics.")
-    parser.add_argument("--report-json", default=None, help="Save a read-only MIDI capability report as JSON.")
-    parser.add_argument("--capability-scan", action="store_true", help="Probe EP-133 interaction capabilities and print a text report.")
+    parser.add_argument(
+        "--usb-diagnose", action="store_true", help="Print detailed EP-133 USB class diagnostics."
+    )
+    parser.add_argument(
+        "--report-json", default=None, help="Save a read-only MIDI capability report as JSON."
+    )
+    parser.add_argument(
+        "--capability-scan",
+        action="store_true",
+        help="Probe EP-133 interaction capabilities and print a text report.",
+    )
     parser.add_argument(
         "--capability-scan-live-actions",
         action="store_true",
@@ -73,10 +96,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Capture the complete read-only EP-133 file tree and save it as integrity-checked JSON.",
     )
-    parser.add_argument("--snapshot-pages", type=int, default=32, help="Maximum pages per device directory.")
-    parser.add_argument("--snapshot-depth", type=int, default=8, help="Maximum device directory depth.")
-    parser.add_argument("--snapshot-directories", type=int, default=1000, help="Maximum directories to scan.")
-    parser.add_argument("--snapshot-timeout", type=float, default=2.0, help="Seconds to wait per snapshot request.")
+    parser.add_argument(
+        "--snapshot-pages", type=int, default=32, help="Maximum pages per device directory."
+    )
+    parser.add_argument(
+        "--snapshot-depth", type=int, default=8, help="Maximum device directory depth."
+    )
+    parser.add_argument(
+        "--snapshot-directories", type=int, default=1000, help="Maximum directories to scan."
+    )
+    parser.add_argument(
+        "--snapshot-timeout", type=float, default=2.0, help="Seconds to wait per snapshot request."
+    )
     parser.add_argument(
         "--device-download-node",
         type=int,
@@ -172,28 +203,60 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Peak-normalize an audio project render to -0.2 dBFS.",
     )
-    parser.add_argument("--init-session", default=None, help="Create a companion session JSON under --project-root.")
+    parser.add_argument(
+        "--init-session", default=None, help="Create a companion session JSON under --project-root."
+    )
     parser.add_argument(
         "--sysex-probe",
-        choices=("self-test", "identity", "te-echo", "file-init", "root-list", "root-info", "metadata-get"),
+        choices=(
+            "self-test",
+            "identity",
+            "te-echo",
+            "file-init",
+            "root-list",
+            "root-info",
+            "metadata-get",
+        ),
         default=None,
         help="Build a safe read-only SysEx probe frame. Does not send hardware writes.",
     )
-    parser.add_argument("--sysex-node", type=int, default=0, help="Node id for read-only file SysEx probes.")
-    parser.add_argument("--sysex-page", type=int, default=0, help="Page for read-only file SysEx probes.")
-    parser.add_argument("--sysex-key", default="", help="Metadata key for read-only metadata probe.")
+    parser.add_argument(
+        "--sysex-node", type=int, default=0, help="Node id for read-only file SysEx probes."
+    )
+    parser.add_argument(
+        "--sysex-page", type=int, default=0, help="Page for read-only file SysEx probes."
+    )
+    parser.add_argument(
+        "--sysex-key", default="", help="Metadata key for read-only metadata probe."
+    )
     parser.add_argument("--sysex-device-id", type=lambda value: int(value, 0), default=0x7F)
     parser.add_argument("--sysex-request-id", type=lambda value: int(value, 0), default=1)
-    parser.add_argument("--send-sysex-probe", action="store_true", help="Send the selected read-only --sysex-probe live.")
-    parser.add_argument("--sysex-timeout", type=float, default=2.0, help="Seconds to wait for a live SysEx response.")
-    parser.add_argument("--live", action="store_true", help="Allow live MIDI when the port is allow-listed.")
+    parser.add_argument(
+        "--send-sysex-probe",
+        action="store_true",
+        help="Send the selected read-only --sysex-probe live.",
+    )
+    parser.add_argument(
+        "--sysex-timeout",
+        type=float,
+        default=2.0,
+        help="Seconds to wait for a live SysEx response.",
+    )
+    parser.add_argument(
+        "--live", action="store_true", help="Allow live MIDI when the port is allow-listed."
+    )
     parser.add_argument(
         "--midi-backend",
         choices=("auto", "winmm", "mido"),
         default="auto",
         help="Live MIDI backend. auto prefers mido when usable, then native Windows WinMM.",
     )
-    parser.add_argument("--allow-output", action="append", default=[], help="Substring of an allowed live output port.")
+    parser.add_argument(
+        "--allow-output",
+        action="append",
+        default=[],
+        help="Substring of an allowed live output port.",
+    )
     parser.add_argument("--output-port", default=None, help="MIDI output port name.")
     parser.add_argument(
         "--ko2-route",
@@ -202,26 +265,50 @@ def build_parser() -> argparse.ArgumentParser:
         help="Resolve KO II routing. auto uses KO II MIDI when visible, otherwise QUAD-CAPTURE when visible.",
     )
     parser.add_argument("--input-port", default=None, help="MIDI input port name for monitoring.")
-    parser.add_argument("--monitor-input", action="store_true", help="Read incoming MIDI and infer KO II runtime state.")
-    parser.add_argument("--monitor-seconds", type=float, default=10.0, help="How long --monitor-input listens.")
+    parser.add_argument(
+        "--monitor-input",
+        action="store_true",
+        help="Read incoming MIDI and infer KO II runtime state.",
+    )
+    parser.add_argument(
+        "--monitor-seconds", type=float, default=10.0, help="How long --monitor-input listens."
+    )
     parser.add_argument("--state-json", default=None, help="Save inferred runtime state as JSON.")
     parser.add_argument("--bpm", type=float, default=120.0)
     parser.add_argument("--channel", type=int, default=0, help="Zero-based MIDI channel.")
     parser.add_argument("--start", action="store_true", help="Send MIDI Start.")
     parser.add_argument("--continue-transport", action="store_true", help="Send MIDI Continue.")
     parser.add_argument("--stop", action="store_true", help="Send MIDI Stop.")
-    parser.add_argument("--clock-ticks", type=int, default=0, help="Send this many MIDI clock ticks.")
-    parser.add_argument("--note", type=int, default=None, help="Send a note-on/note-off dry-run or live test.")
+    parser.add_argument(
+        "--clock-ticks", type=int, default=0, help="Send this many MIDI clock ticks."
+    )
+    parser.add_argument(
+        "--note", type=int, default=None, help="Send a note-on/note-off dry-run or live test."
+    )
     parser.add_argument("--velocity", type=int, default=96)
-    parser.add_argument("--cc", nargs=2, type=int, metavar=("CONTROL", "VALUE"), help="Send a MIDI control change.")
+    parser.add_argument(
+        "--cc", nargs=2, type=int, metavar=("CONTROL", "VALUE"), help="Send a MIDI control change."
+    )
     parser.add_argument("--program", type=int, default=None, help="Send a MIDI program change.")
-    parser.add_argument("--bank-msb", type=int, default=None, help="Send bank select MSB using CC 0.")
-    parser.add_argument("--bank-lsb", type=int, default=None, help="Send bank select LSB using CC 32.")
-    parser.add_argument("--save-project", default=None, help="Relative JSON path under --project-root.")
+    parser.add_argument(
+        "--bank-msb", type=int, default=None, help="Send bank select MSB using CC 0."
+    )
+    parser.add_argument(
+        "--bank-lsb", type=int, default=None, help="Send bank select LSB using CC 32."
+    )
+    parser.add_argument(
+        "--save-project", default=None, help="Relative JSON path under --project-root."
+    )
     parser.add_argument("--project-root", default="daw_projects")
-    parser.add_argument("--import-web-manifest", help="Import a KO II Web MIDI Lab JSON export locally.")
-    parser.add_argument("--sample-audio-dir", help="Folder containing the browser's exported WAV files.")
-    parser.add_argument("--sample-manifest-output", help="New desktop manifest path; existing files are protected.")
+    parser.add_argument(
+        "--import-web-manifest", help="Import a KO II Web MIDI Lab JSON export locally."
+    )
+    parser.add_argument(
+        "--sample-audio-dir", help="Folder containing the browser's exported WAV files."
+    )
+    parser.add_argument(
+        "--sample-manifest-output", help="New desktop manifest path; existing files are protected."
+    )
     return parser
 
 
@@ -232,7 +319,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.import_web_manifest:
         if not args.sample_audio_dir or not args.sample_manifest_output:
-            parser.error("--import-web-manifest requires --sample-audio-dir and --sample-manifest-output")
+            parser.error(
+                "--import-web-manifest requires --sample-audio-dir and --sample-manifest-output"
+            )
         output = Path(args.sample_manifest_output)
         if output.exists():
             parser.error("Sample manifest output already exists; choose a new path.")
@@ -337,13 +426,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"project_backup_catalog={result.catalog_path}")
         print(f"project_backup_verified={result.catalog.verified_count}")
         print(
-            "project_backup_downloaded="
-            + ",".join(str(node) for node in result.downloaded_nodes)
+            "project_backup_downloaded=" + ",".join(str(node) for node in result.downloaded_nodes)
         )
-        print(
-            "project_backup_skipped="
-            + ",".join(str(node) for node in result.skipped_nodes)
-        )
+        print("project_backup_skipped=" + ",".join(str(node) for node in result.skipped_nodes))
         print(f"project_backup_integrity_sha256={result.catalog.integrity_sha256}")
         return 0
     if args.device_project_catalog:
@@ -366,10 +451,7 @@ def main(argv: list[str] | None = None) -> int:
             parser.exit(2, f"error: {exc}\n")
         print(f"project_catalog={path}")
         print(f"project_catalog_verified={catalog.verified_count}")
-        print(
-            "project_catalog_missing="
-            + ",".join(str(node) for node in catalog.missing_nodes)
-        )
+        print("project_catalog_missing=" + ",".join(str(node) for node in catalog.missing_nodes))
         print(f"project_catalog_integrity_sha256={catalog.integrity_sha256}")
         return 0
     if args.device_download_node is not None:
@@ -544,7 +626,9 @@ def main(argv: list[str] | None = None) -> int:
             log.append(f"clock_ticks={args.clock_ticks}")
 
         if args.note is not None:
-            sequencer = StepSequencer(controller, [StepEvent(beat=0, note=args.note, velocity=args.velocity)])
+            sequencer = StepSequencer(
+                controller, [StepEvent(beat=0, note=args.note, velocity=args.velocity)]
+            )
             sent = sequencer.render_once()
             log.append(f"note_test_sent_messages={sent}")
 
@@ -574,7 +658,11 @@ def main(argv: list[str] | None = None) -> int:
                 name="ko2-daw-session",
                 bpm=args.bpm,
                 midi_channel=args.channel,
-                notes=[] if args.note is None else [{"beat": 0, "note": args.note, "velocity": args.velocity}],
+                notes=(
+                    []
+                    if args.note is None
+                    else [{"beat": 0, "note": args.note, "velocity": args.velocity}]
+                ),
                 controller_log=log,
             )
             store = SafeProjectStore(Path(args.project_root))
@@ -662,7 +750,9 @@ def print_usb_diagnostics(report: dict[str, object]) -> None:
     print(f"ko2_usb_connected: {report.get('ko2_usb_connected')}")
     print(f"ko2_midi_ready: {report.get('ko2_midi_ready')}")
     for device in report.get("ko2_usb_devices") or []:
-        print(f"device: {device.get('friendly_name') or device.get('device_description') or device.get('hardware_id')}")
+        print(
+            f"device: {device.get('friendly_name') or device.get('device_description') or device.get('hardware_id')}"
+        )
         print(f"  hardware_id: {device.get('hardware_id')}")
         print(f"  instance: {device.get('instance')}")
         print(f"  service: {device.get('service')}")
@@ -670,8 +760,12 @@ def print_usb_diagnostics(report: dict[str, object]) -> None:
         if device.get("compatible_ids"):
             print(f"  compatible_ids: {device.get('compatible_ids')}")
     if report.get("ko2_usb_connected") and not report.get("ko2_midi_ready"):
-        print("diagnosis: EP-133 is connected, but this USB interface is not exposing USB MIDI streaming.")
-        print("expected_for_direct_usb_midi: USB Class_01 SubClass_03 or a visible EP-133 MIDI input/output port.")
+        print(
+            "diagnosis: EP-133 is connected, but this USB interface is not exposing USB MIDI streaming."
+        )
+        print(
+            "expected_for_direct_usb_midi: USB Class_01 SubClass_03 or a visible EP-133 MIDI input/output port."
+        )
 
 
 def print_route(route) -> None:
@@ -705,7 +799,9 @@ def build_sysex_probe_frame(args: argparse.Namespace) -> tuple[str, bytes | None
         return "identity", build_universal_identity_request()
     if args.sysex_probe == "te-echo":
         payload = b"ko2-sampler-daw"
-        return "te-echo", build_te_frame(TESysexCommand.ECHO, payload, args.sysex_request_id, args.sysex_device_id)
+        return "te-echo", build_te_frame(
+            TESysexCommand.ECHO, payload, args.sysex_request_id, args.sysex_device_id
+        )
     payload = build_sysex_probe_payload(args)
     return args.sysex_probe, build_te_frame(
         TEFileCommand.COMMAND,
@@ -770,6 +866,7 @@ def build_backend(live: bool, backend_name: str = "auto") -> MidiBackend:
         return WinMMMidiBackend()
     try:
         return MidoMidiBackend()
+    # ruff: ignore[BLE001] Fall back when an optional MIDI backend cannot initialize.
     except Exception:
         return WinMMMidiBackend()
 
@@ -779,7 +876,10 @@ def launch_gui_or_status() -> int:
         from ko2_daw.gui import run_gui
 
         return run_gui()
-    except Exception as exc:
+    except (
+        # ruff: ignore[BLE001] Top-level GUI boundary reports failures and offers CLI status.
+        Exception
+    ) as exc:
         print(f"GUI unavailable: {exc}")
         print()
         print_startup_status(midi_capability_report())
@@ -796,13 +896,13 @@ def choose_output_port(
     if not live or requested_port:
         return requested_port
     if not allow_list:
-        raise ValueError("Live mode requires --output-port or at least one --allow-output substring.")
+        raise ValueError(
+            "Live mode requires --output-port or at least one --allow-output substring."
+        )
 
     ports = backend.list_output_ports()
     matches = [
-        port
-        for port in ports
-        if any(allowed.lower() in port.lower() for allowed in allow_list)
+        port for port in ports if any(allowed.lower() in port.lower() for allowed in allow_list)
     ]
     if len(matches) == 1:
         return matches[0]
@@ -820,7 +920,9 @@ def save_json_report(path: Path, report: dict[str, object]) -> Path:
     target = path.resolve()
     target.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(report, indent=2, sort_keys=True)
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False, dir=target.parent) as handle:
+    with tempfile.NamedTemporaryFile(
+        "w", encoding="utf-8", delete=False, dir=target.parent
+    ) as handle:
         handle.write(payload)
         handle.write("\n")
         temp_name = handle.name
@@ -849,18 +951,26 @@ def print_startup_status(report: dict[str, object]) -> None:
     print("  python run_ko2_daw.py --init-session ko2_session_companion.json")
     print("  python run_ko2_daw.py --sysex-probe self-test")
     print("  python run_ko2_daw.py --sysex-probe identity")
-    print("  python run_ko2_daw.py --live --ko2-route usb-midi --sysex-probe identity --send-sysex-probe")
-    print("  python run_ko2_daw.py --live --ko2-route usb-midi --sysex-probe root-list --send-sysex-probe")
-    print("  python run_ko2_daw.py --capability-scan --capability-report-txt docs\\ko2_device_interaction_capabilities.txt")
+    print(
+        "  python run_ko2_daw.py --live --ko2-route usb-midi --sysex-probe identity --send-sysex-probe"
+    )
+    print(
+        "  python run_ko2_daw.py --live --ko2-route usb-midi --sysex-probe root-list --send-sysex-probe"
+    )
+    print(
+        "  python run_ko2_daw.py --capability-scan --capability-report-txt docs\\ko2_device_interaction_capabilities.txt"
+    )
     print("  python run_ko2_daw.py --device-snapshot daw_projects\\ep133_device_snapshot.json")
     print("  python run_ko2_daw.py --device-download-node 207")
     print("  python run_ko2_daw.py --device-project-catalog")
     print("  python run_ko2_daw.py --device-project-backup-all")
-    print("  python run_ko2_daw.py --monitor-input --monitor-seconds 10 --state-json daw_projects\\ko2_state.json")
+    print(
+        "  python run_ko2_daw.py --monitor-input --monitor-seconds 10 --state-json daw_projects\\ko2_state.json"
+    )
     print("  python run_ko2_daw.py --note 60 --save-project ko2_session.json")
     print()
     print("Live MIDI requires a visible output port and an explicit allow-list:")
-    print('  python run_ko2_daw.py --live --ko2-route usb-midi --note 60')
+    print("  python run_ko2_daw.py --live --ko2-route usb-midi --note 60")
 
 
 def print_report(report: dict[str, object]) -> None:
@@ -873,8 +983,14 @@ def print_report(report: dict[str, object]) -> None:
     print(f"ko2_usb_connected: {report.get('ko2_usb_connected')}")
     print(f"ko2_midi_ready: {report.get('ko2_midi_ready')}")
     for device in report.get("ko2_usb_devices") or []:
-        label = device.get("friendly_name") or device.get("device_description") or device.get("hardware_id")
-        print(f"ko2_usb_device: {label} {device.get('hardware_id')} instance={device.get('instance')}")
+        label = (
+            device.get("friendly_name")
+            or device.get("device_description")
+            or device.get("hardware_id")
+        )
+        print(
+            f"ko2_usb_device: {label} {device.get('hardware_id')} instance={device.get('instance')}"
+        )
     print("ko2_midi_ports:")
     for port in report.get("ko2_midi_ports") or []:
         print(f"  - {port}")

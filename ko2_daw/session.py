@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
+import json
+import tempfile
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
-import json
 from pathlib import Path
-import tempfile
-
 
 SCHEMA_VERSION = 1
 
@@ -65,7 +64,9 @@ def default_ko2_profile() -> DeviceProfile:
     for group_index, group in enumerate(("A", "B", "C", "D")):
         base = 36 + group_index * 12
         for offset, label in enumerate(labels):
-            pads.append(PadAssignment(group=group, label=label, note=base + offset, name=f"{group}{label}"))
+            pads.append(
+                PadAssignment(group=group, label=label, note=base + offset, name=f"{group}{label}")
+            )
     return DeviceProfile(
         name="EP-133 K.O. II default MIDI profile",
         model="EP-133",
@@ -108,7 +109,9 @@ class CompanionSessionStore:
         target = self._target(relative_path)
         target.parent.mkdir(parents=True, exist_ok=True)
         payload = json.dumps(session.to_dict(), indent=2, sort_keys=True)
-        with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False, dir=target.parent) as handle:
+        with tempfile.NamedTemporaryFile(
+            "w", encoding="utf-8", delete=False, dir=target.parent
+        ) as handle:
             handle.write(payload)
             handle.write("\n")
             temp_name = handle.name

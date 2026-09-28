@@ -42,7 +42,6 @@ def apply_all_groups_matrix_patch(gui_module: Any) -> None:
 
     tk = gui_module.tk
     original_init = app_class.__init__
-    original_build_center = app_class._build_center_hardware_area
     original_queue_midi_input = app_class._queue_midi_input
     original_device_group = getattr(app_class, "_device_group", None)
     original_device_pad = getattr(app_class, "_device_pad", None)
@@ -209,7 +208,9 @@ def apply_all_groups_matrix_patch(gui_module: Any) -> None:
         if hasattr(self, "song_timeline"):
             self.song_timeline.select_track(group)
         note = NOTES_BY_GROUP[group][pad_index]
-        self._send_midi(MidiMessage.note_on(note, self.velocity.get(), channel=self.config.midi_channel))
+        self._send_midi(
+            MidiMessage.note_on(note, self.velocity.get(), channel=self.config.midi_channel)
+        )
         self._send_midi(MidiMessage.note_off(note, channel=self.config.midi_channel))
         if hasattr(self, "_mark_current_step"):
             self._mark_current_step(group)
@@ -254,14 +255,21 @@ def apply_all_groups_matrix_patch(gui_module: Any) -> None:
             self._mark_control(f"group_{group.lower()}", source)
         self._refresh_group_matrix()
 
-    def _group_matrix_press(self, group: str, pad_index: int, source: str, *, held: bool = False) -> None:
+    def _group_matrix_press(
+        self, group: str, pad_index: int, source: str, *, held: bool = False
+    ) -> None:
         note = NOTES_BY_GROUP[group][pad_index]
         self.group_matrix_active_notes[note] = None if held else monotonic() + RELEASE_FLASH_SEC
         if hasattr(self, "_mark_control"):
             self._mark_control(f"group_{group.lower()}_pad_{pad_index}", source)
         if hasattr(self, "song_timeline"):
-            step = self.runtime_state.clock_ticks % self.song_timeline.current_song.tracks[group].length_steps
-            self.song_timeline.mark_step(group, step, f"{group}:{PAD_LABELS[pad_index]}", evidence=source)
+            step = (
+                self.runtime_state.clock_ticks
+                % self.song_timeline.current_song.tracks[group].length_steps
+            )
+            self.song_timeline.mark_step(
+                group, step, f"{group}:{PAD_LABELS[pad_index]}", evidence=source
+            )
         self._refresh_group_matrix()
 
     def _group_matrix_release(self, group: str, pad_index: int) -> None:

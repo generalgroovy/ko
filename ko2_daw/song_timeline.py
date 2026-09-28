@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import re
+from dataclasses import dataclass, field
 
 SONG_NUMBERS = tuple(range(1, 10))
 TRACKS = ("A", "B", "C", "D")
@@ -87,7 +87,9 @@ class SongTimelineSet:
         self.select_track(track)
         self.current_song.tracks[self.selected_track].mark(step, component, evidence=evidence)
 
-    def infer_from_file_entry(self, path: str, kind: str, node: str, name: str, size: str = "") -> None:
+    def infer_from_file_entry(
+        self, path: str, kind: str, node: str, name: str, size: str = ""
+    ) -> None:
         """Infer song/track setup hints from a hardware file-tree entry."""
 
         text = " ".join(str(part or "") for part in (path, kind, node, name, size)).casefold()

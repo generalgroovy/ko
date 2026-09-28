@@ -50,9 +50,14 @@ def apply_connection_guard_patch(gui_module: Any) -> None:
                 self.live_state.set(f"live: {self.live_input_port} -> {self.live_output_port}")
                 self._log(f"file protocol input recovered: {self.live_input_port}")
                 if hasattr(self, "_record_protocol"):
-                    self._record_protocol("app", "route", f"input recovered: {self.live_input_port}")
+                    self._record_protocol(
+                        "app", "route", f"input recovered: {self.live_input_port}"
+                    )
                 return True
-            except Exception as exc:
+            except (
+                # ruff: ignore[BLE001] Report backend recovery failure before blocking the transfer.
+                Exception
+            ) as exc:
                 self._log(f"file protocol input recovery failed: {exc}")
                 if hasattr(self, "_record_protocol"):
                     self._record_protocol("app", "error", f"input recovery failed: {exc}")

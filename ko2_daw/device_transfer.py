@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from datetime import UTC, datetime
 import hashlib
 import io
 import json
-from pathlib import Path
 import re
 import struct
-from typing import Callable
 import wave
 import zlib
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from pathlib import Path
 
 from ko2_daw.device_snapshot import ReadOnlySysexSession
 from ko2_daw.io_utils import atomic_write_bytes, atomic_write_text
@@ -21,10 +21,10 @@ from ko2_daw.project_archive import inspect_project_archive
 from ko2_daw.routing import KO2Route, resolve_ko2_route
 from ko2_daw.sysex_exchange import matching_sysex_responses
 from ko2_daw.te_sysex import (
+    TE_ID,
     TEFileCommand,
     TEFileDownloadInfo,
     TEFrame,
-    TE_ID,
     build_file_get_data_payload,
     build_file_get_init_payload,
     build_file_init_payload,
@@ -35,7 +35,6 @@ from ko2_daw.te_sysex import (
     parse_file_init_response,
     parse_te_frame,
 )
-
 
 RawExchange = Callable[[bytes, float], list[bytes]]
 ProgressCallback = Callable[[int, int, str], None]
@@ -142,9 +141,7 @@ class DeviceFileClient:
                 raise RuntimeError(f"Metadata page {page} was shorter than its page header.")
             returned_page = int.from_bytes(payload[:2], "big")
             if returned_page != page:
-                raise RuntimeError(
-                    f"Unexpected metadata page {returned_page}; expected {page}."
-                )
+                raise RuntimeError(f"Unexpected metadata page {returned_page}; expected {page}.")
             body = payload[2:]
             if not body:
                 break
@@ -164,6 +161,7 @@ class DeviceFileClient:
             return {}, ""
         parsed = json.loads(text)
         if not isinstance(parsed, dict):
+            # ruff: ignore[TRY004] Invalid device JSON is a protocol failure.
             raise RuntimeError("Device metadata JSON is not an object.")
         return parsed, text
 
@@ -261,16 +259,13 @@ class DeviceFileClient:
                     "EP-133 emitted a firmware log instead of the requested file response: "
                     f"{logs[-1]}. Reconnect or power-cycle the device before retrying."
                 )
-            raise TimeoutError(
-                f"No matching EP-133 SysEx response for request {self.request_id}."
-            )
+            raise TimeoutError(f"No matching EP-133 SysEx response for request {self.request_id}.")
         frame = parse_te_frame(responses[0])
         if frame is None:
             raise RuntimeError("EP-133 returned an invalid TE SysEx frame.")
         if frame.status != 0:
             raise RuntimeError(
-                f"EP-133 file request failed with status {frame.status} "
-                f"({frame.status_text})."
+                f"EP-133 file request failed with status {frame.status} " f"({frame.status_text})."
             )
         return frame
 
@@ -362,9 +357,7 @@ def save_device_download(
         "raw_file": raw_path.name,
         "wav_file": wav_path.name if wav_path else None,
         "metadata_file": metadata_path.name,
-        "project_analysis_file": (
-            project_analysis_path.name if project_analysis_path else None
-        ),
+        "project_analysis_file": (project_analysis_path.name if project_analysis_path else None),
     }
     manifest_path = atomic_write_text(
         bundle_dir / "manifest.json",
@@ -415,9 +408,7 @@ def find_latest_device_artifact(
         latest_path=latest_path,
         wav_path=(bundle_dir / str(wav_name)) if wav_name else None,
         project_analysis_path=(
-            bundle_dir / str(project_analysis_name)
-            if project_analysis_name
-            else None
+            bundle_dir / str(project_analysis_name) if project_analysis_name else None
         ),
     )
 
@@ -519,6 +510,7 @@ def _notify_progress(
         return
     try:
         callback(done, total, stage)
+    # ruff: ignore[BLE001] Reporting callbacks must not abandon an active device GET.
     except Exception:
         # UI/reporting failures must never abandon an active device GET transaction.
         return

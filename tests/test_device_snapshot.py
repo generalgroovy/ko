@@ -26,7 +26,9 @@ def _fake_route() -> KO2Route:
 
 def _fake_exchange(frame: bytes, _timeout: float) -> list[SysexDecodedResponse]:
     if frame[:5] == bytes([0xF0, 0x7E, 0x7F, 0x06, 0x01]):
-        return [SysexDecodedResponse("identity", "TE identity TE032AS001", "", {"sku": "TE032AS001"})]
+        return [
+            SysexDecodedResponse("identity", "TE identity TE032AS001", "", {"sku": "TE032AS001"})
+        ]
 
     parsed = parse_te_frame(frame)
     assert parsed is not None

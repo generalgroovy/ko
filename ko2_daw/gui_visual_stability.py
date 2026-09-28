@@ -28,9 +28,9 @@ def apply_visual_stability_patch(gui_module: Any) -> None:
 
     def _mark_matrix_widgets_owned(self) -> None:
         for button in getattr(self, "group_matrix_buttons", {}).values():
-            setattr(button, "_ko2_matrix_managed", True)
+            button._ko2_matrix_managed = True
         for button in getattr(self, "group_matrix_labels", {}).values():
-            setattr(button, "_ko2_matrix_managed", True)
+            button._ko2_matrix_managed = True
 
     def _set_button_active(self, button, active: bool) -> None:
         if getattr(button, "_ko2_matrix_managed", False):

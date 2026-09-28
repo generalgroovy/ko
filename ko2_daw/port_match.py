@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 
-
 KO2_TEXT_TOKENS = (
     "ep 133",
     "ep133",
@@ -46,9 +45,7 @@ def looks_like_ko2_port(port_name: str) -> bool:
         return True
     if any(token in compact for token in ("ep133", "koii", "ko2", "ep1320")):
         return True
-    if "teenage" in normalized and any(token in compact for token in ("ep", "ko", "midi")):
-        return True
-    return False
+    return bool("teenage" in normalized and any(token in compact for token in ("ep", "ko", "midi")))
 
 
 def unique_ports(ports: Iterable[str]) -> list[str]:
@@ -76,7 +73,9 @@ def collect_ko2_ports(
     return unique_ports([*reported, *detected])
 
 
-def select_ko2_output(output_ports: Iterable[str], candidates: Iterable[str] | None = None) -> str | None:
+def select_ko2_output(
+    output_ports: Iterable[str], candidates: Iterable[str] | None = None
+) -> str | None:
     """Select the best visible KO II output port."""
 
     outputs = list(output_ports)
@@ -86,7 +85,9 @@ def select_ko2_output(output_ports: Iterable[str], candidates: Iterable[str] | N
     return next((port for port in outputs if looks_like_ko2_port(port)), None)
 
 
-def select_ko2_input(input_ports: Iterable[str], candidates: Iterable[str] | None = None) -> str | None:
+def select_ko2_input(
+    input_ports: Iterable[str], candidates: Iterable[str] | None = None
+) -> str | None:
     """Select the best visible KO II input port."""
 
     inputs = list(input_ports)

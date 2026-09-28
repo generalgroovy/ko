@@ -10,9 +10,7 @@ def test_device_keypad_matches_physical_ep133_geometry() -> None:
         ["1", "2", "3"],
         [".", "0", "ENTER"],
     ]
-    assert sorted(index for row in DEVICE_KEY_LAYOUT for _label, index in row) == list(
-        range(12)
-    )
+    assert sorted(index for row in DEVICE_KEY_LAYOUT for _label, index in row) == list(range(12))
 
 
 def test_device_group_column_matches_physical_order() -> None:

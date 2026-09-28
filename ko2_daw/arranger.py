@@ -2,19 +2,19 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
 import hashlib
 import json
-from pathlib import Path
+import logging
 import threading
+from collections.abc import Callable
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
 from time import monotonic, perf_counter
-from typing import Callable
 
 from ko2_daw.io_utils import atomic_write_bytes, atomic_write_text
 from ko2_daw.midi import MidiMessage
 from ko2_daw.performance import PerformanceClip
 from ko2_daw.protocol_recorder import midi_message_from_dict
-
 
 GROUPS = ("A", "B", "C", "D")
 GROUP_BASE_NOTES = {"A": 36, "B": 48, "C": 60, "D": 72}
@@ -89,21 +89,15 @@ class MidiClip:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, object]) -> "MidiClip":
+    def from_dict(cls, data: dict[str, object]) -> MidiClip:
         clip = cls(
             clip_id=str(data.get("clip_id", "")),
             name=str(data.get("name", "Clip")),
             group=str(data.get("group", "A")),
             length_beats=float(data.get("length_beats", 4.0)),
-            notes=[
-                ClipNote(**item)
-                for item in data.get("notes", [])
-                if isinstance(item, dict)
-            ],
+            notes=[ClipNote(**item) for item in data.get("notes", []) if isinstance(item, dict)],
             controls=[
-                ClipControl(**item)
-                for item in data.get("controls", [])
-                if isinstance(item, dict)
+                ClipControl(**item) for item in data.get("controls", []) if isinstance(item, dict)
             ],
         )
         clip.validate()
@@ -227,7 +221,7 @@ class ArrangerProject:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, object]) -> "ArrangerProject":
+    def from_dict(cls, data: dict[str, object]) -> ArrangerProject:
         tracks_data = data.get("tracks") or {}
         clips_data = data.get("clips") or {}
         project = cls(
@@ -560,9 +554,10 @@ class ArrangerSession:
         return atomic_write_text(path, payload)
 
     @classmethod
-    def load(cls, path: str | Path) -> "ArrangerSession":
+    def load(cls, path: str | Path) -> ArrangerSession:
         raw = json.loads(Path(path).read_text(encoding="utf-8"))
         if not isinstance(raw, dict):
+            # ruff: ignore[TRY004] Invalid serialized data preserves the public ValueError contract.
             raise ValueError("Arranger project must be a JSON object.")
         return cls(ArrangerProject.from_dict(raw))
 
@@ -689,7 +684,9 @@ def compile_arrangement(
                 clip_iteration = 0
                 while clip_iteration * clip.length_beats < scene_length - 1e-9:
                     base = cursor + clip_iteration * clip.length_beats
-                    available = min(clip.length_beats, scene_length - clip_iteration * clip.length_beats)
+                    available = min(
+                        clip.length_beats, scene_length - clip_iteration * clip.length_beats
+                    )
                     for note_index, note in enumerate(clip.notes):
                         if note.beat >= available:
                             continue
@@ -920,8 +917,7 @@ class RealtimeArrangerEngine:
                 if send_clock:
                     tick_count = max(1, round(length * 24))
                     timeline.extend(
-                        (tick / 24.0, 1, MidiMessage.clock())
-                        for tick in range(tick_count)
+                        (tick / 24.0, 1, MidiMessage.clock()) for tick in range(tick_count)
                     )
                 timeline.sort(key=lambda item: (item[0], item[1]))
                 started = perf_counter()
@@ -943,7 +939,10 @@ class RealtimeArrangerEngine:
             self._cleanup(send_transport)
             if self.on_complete:
                 self.on_complete()
-        except Exception as exc:
+        except (
+            # ruff: ignore[BLE001] Report worker failures after releasing active MIDI notes.
+            Exception
+        ) as exc:
             self._cleanup(send_transport)
             if self.on_error:
                 self.on_error(exc)
@@ -971,19 +970,25 @@ class RealtimeArrangerEngine:
             try:
                 self.send(MidiMessage.note_off(note, channel=channel))
             except Exception:
-                pass
+                logging.getLogger(__name__).debug(
+                    "Try every note-off even after a backend failure.", exc_info=True
+                )
         self._active_notes.clear()
         if send_transport:
             try:
                 self.send(MidiMessage.stop())
             except Exception:
-                pass
+                logging.getLogger(__name__).debug(
+                    "Transport cleanup must finish after a backend failure.", exc_info=True
+                )
 
 
 class ArrangerClockFollower:
     """Advance an arrangement from incoming MIDI Start/Continue/Stop/Clock."""
 
-    def __init__(self, project: ArrangerProject, *, mode: str = "song", scene_id: str | None = None):
+    def __init__(
+        self, project: ArrangerProject, *, mode: str = "song", scene_id: str | None = None
+    ):
         self.project = project
         self.mode = mode
         self.scene_id = scene_id
@@ -1074,7 +1079,7 @@ def _probability_passes(
         return True
     if probability <= 0:
         return False
-    payload = f"{seed}:{cycle}:{iteration}:{clip_id}:{note_index}".encode("utf-8")
+    payload = f"{seed}:{cycle}:{iteration}:{clip_id}:{note_index}".encode()
     value = int.from_bytes(hashlib.sha256(payload).digest()[:8], "big") / float(1 << 64)
     return value < probability
 

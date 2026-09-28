@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 import ctypes
-from ctypes import wintypes
-from dataclasses import dataclass
-from pathlib import Path
+import logging
 import sys
 import tempfile
 import threading
 import time
-from typing import Callable
 import wave
-
+from collections.abc import Callable
+from ctypes import wintypes
+from dataclasses import dataclass
+from pathlib import Path
 
 WAVE_FORMAT_PCM = 1
 CALLBACK_NULL = 0
@@ -169,9 +169,7 @@ def record_wave_input(
         CALLBACK_NULL,
     )
     if result != MMSYSERR_NOERROR:
-        raise RuntimeError(
-            f"WinMM waveInOpen failed for {device.name!r} with code {result}."
-        )
+        raise RuntimeError(f"WinMM waveInOpen failed for {device.name!r} with code {result}.")
 
     buffers: list[ctypes.Array] = []
     headers: list[WAVEHDR] = []
@@ -245,7 +243,10 @@ def record_wave_input(
                 try:
                     progress(recorded / average_bytes, duration_sec)
                 except Exception:
-                    pass
+                    logging.getLogger(__name__).debug(
+                        "Progress callbacks must not interrupt native capture cleanup.",
+                        exc_info=True,
+                    )
         winmm.waveInStop(handle)
         winmm.waveInReset(handle)
     finally:
@@ -315,11 +316,7 @@ def _resolve_wave_input(
         exact = [device for device in devices if device.name.casefold() == device_name.casefold()]
         if len(exact) == 1:
             return exact[0]
-        partial = [
-            device
-            for device in devices
-            if device_name.casefold() in device.name.casefold()
-        ]
+        partial = [device for device in devices if device_name.casefold() in device.name.casefold()]
         if len(partial) == 1:
             return partial[0]
         if len(partial) > 1:

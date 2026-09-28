@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
-import json
 import os
-from pathlib import Path
 import queue
 import threading
+from pathlib import Path
 from typing import Any
 
-from ko2_daw.device_transfer import DeviceDownloadLimits, DeviceFileClient, find_latest_device_artifact
+from ko2_daw.device_transfer import (
+    DeviceDownloadLimits,
+    DeviceFileClient,
+    find_latest_device_artifact,
+)
 from ko2_daw.project_archive import compare_project_archives
 from ko2_daw.project_catalog import (
     ProjectBackupEvent,
@@ -67,10 +70,7 @@ def apply_project_catalog_patch(gui_module: Any) -> None:
         menu.add_cascade(label="Projects", menu=projects)
 
     def _show_project_catalog(self) -> None:
-        if (
-            self.project_catalog_window
-            and self.project_catalog_window.winfo_exists()
-        ):
+        if self.project_catalog_window and self.project_catalog_window.winfo_exists():
             self.project_catalog_window.lift()
             self._refresh_project_catalog()
             return
@@ -263,7 +263,10 @@ def apply_project_catalog_patch(gui_module: Any) -> None:
                 self.project_root / "device_library",
             )
             path = save_project_catalog(catalog)
-        except Exception as exc:
+        except (
+            # ruff: ignore[BLE001] Show catalog failures without replacing the current GUI view.
+            Exception
+        ) as exc:
             self.project_catalog_status.set(f"catalog failed: {exc}")
             self._log(f"project catalog failed: {exc}")
             return
@@ -401,9 +404,7 @@ def apply_project_catalog_patch(gui_module: Any) -> None:
         )
 
         def worker() -> None:
-            transfer_acquired = self._device_library_transfer_lock.acquire(
-                blocking=False
-            )
+            transfer_acquired = self._device_library_transfer_lock.acquire(blocking=False)
             scan_acquired = False
             if not transfer_acquired:
                 self.project_catalog_queue.put(
@@ -421,9 +422,7 @@ def apply_project_catalog_patch(gui_module: Any) -> None:
                         frame,
                         timeout,
                     )
-                    return [
-                        bytes.fromhex(response.raw_hex) for response in responses
-                    ]
+                    return [bytes.fromhex(response.raw_hex) for response in responses]
 
                 def progress(event: ProjectBackupEvent) -> None:
                     self.project_catalog_queue.put(("progress", event))
@@ -442,7 +441,10 @@ def apply_project_catalog_patch(gui_module: Any) -> None:
                     progress=progress,
                 )
                 self.project_catalog_queue.put(("complete", result))
-            except Exception as exc:
+            except (
+                # ruff: ignore[BLE001] Relay backup failures and always release transfer locks.
+                Exception
+            ) as exc:
                 self.project_catalog_queue.put(("error", exc))
             finally:
                 if scan_acquired:
@@ -468,8 +470,10 @@ def apply_project_catalog_patch(gui_module: Any) -> None:
                 elif progress_event.stage in {"saved", "skipped-verified"}:
                     fraction = 1.0
                 percent = (
-                    progress_event.project_index - 1 + fraction
-                ) / progress_event.project_total * 100.0
+                    (progress_event.project_index - 1 + fraction)
+                    / progress_event.project_total
+                    * 100.0
+                )
                 self.project_catalog_progress.set(percent)
                 self.project_catalog_status.set(
                     f"project {progress_event.slot:02d}: "
@@ -557,19 +561,15 @@ def apply_project_catalog_patch(gui_module: Any) -> None:
     def _show_project_catalog_help(self) -> None:
         messagebox.showinfo(
             "EP-133 Project Manager Guide",
-            "\n".join(
-                [
-                    "REFRESH LOCAL verifies manifests, raw SHA-256 hashes, bundle paths, and TAR safety.",
-                    "BACKUP MISSING reads only missing or invalid slots and resumes from verified bundles.",
-                    "REFRESH ALL reads all nine slots and preserves each distinct version by SHA-256.",
-                    "COMPARE TWO reports pad sound-id changes and exact changed ranges in opaque records.",
-                    "PAD MAP opens all 48 group/pad sound assignments for one project.",
-                    "",
-                    "A transfer cannot be canceled mid-project. Disconnect, reconnect, scans, and app close "
-                    "remain blocked until the declared archive bytes are consumed.",
-                    "The manager sends file INIT/GET only. It does not upload, restore, rename, delete, "
-                    "or assign meanings to unverified binary fields.",
-                ]
+            (
+                "REFRESH LOCAL verifies manifests, raw SHA-256 hashes, bundle paths, and TAR safety.\n"
+                "BACKUP MISSING reads only missing or invalid slots and resumes from verified bundles.\n"
+                "REFRESH ALL reads all nine slots and preserves each distinct version by SHA-256.\n"
+                "COMPARE TWO reports pad sound-id changes and exact changed ranges in opaque records.\n"
+                "PAD MAP opens all 48 group/pad sound assignments for one project.\n"
+                "\n"
+                "A transfer cannot be canceled mid-project. Disconnect, reconnect, scans, and app close remain blocked until the declared archive bytes are consumed.\n"
+                "The manager sends file INIT/GET only. It does not upload, restore, rename, delete, or assign meanings to unverified binary fields."
             ),
         )
 
@@ -682,8 +682,7 @@ def _show_comparison_window(app, before, after, comparison, tk, ttk) -> None:
     scroll.grid(row=0, column=1, sticky="ns")
     for index, change in enumerate(comparison.binary_changes):
         ranges = ", ".join(
-            f"{item.start_offset}:{item.end_offset}"
-            for item in change.changed_ranges
+            f"{item.start_offset}:{item.end_offset}" for item in change.changed_ranges
         )
         if change.ranges_truncated:
             ranges = f"{ranges}, ..." if ranges else "..."
@@ -707,10 +706,7 @@ def _show_comparison_window(app, before, after, comparison, tk, ttk) -> None:
 
     footer = tk.Label(
         win,
-        text=(
-            f"Before {comparison.before_sha256}\n"
-            f"After  {comparison.after_sha256}"
-        ),
+        text=(f"Before {comparison.before_sha256}\n" f"After  {comparison.after_sha256}"),
         bg="#171915",
         fg="#f3f1de",
         font=("Consolas", 9),

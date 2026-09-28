@@ -6,9 +6,8 @@ Write-capable file operations are blocked by default.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
-
+from dataclasses import dataclass
 
 EXPERIMENTAL_WRITE_ENABLED = False
 SYSEX_START = 0xF0
@@ -170,7 +169,9 @@ def unpack_7bit_payload(data: bytes | bytearray | list[int]) -> bytes:
     return bytes(output)
 
 
-def build_te_frame(command: int, payload: bytes = b"", request_id: int = 1, device_id: int = 0x7F) -> bytes:
+def build_te_frame(
+    command: int, payload: bytes = b"", request_id: int = 1, device_id: int = 0x7F
+) -> bytes:
     assert_command_allowed(command, payload)
     safe_payload = pack_to_7bit_payload(payload)
     flags = BIT_IS_REQUEST | BIT_REQUEST_ID_AVAILABLE | ((request_id >> 7) & 0x1F)
@@ -233,7 +234,9 @@ def parse_universal_identity(data: bytes | bytearray | list[int]) -> dict[str, o
     }
 
 
-def build_file_init_payload(max_response_length: int = 4 * 1024 * 1024, subscribe: bool = True) -> bytes:
+def build_file_init_payload(
+    max_response_length: int = 4 * 1024 * 1024, subscribe: bool = True
+) -> bytes:
     return bytes(
         [
             TEFileCommand.INIT,
@@ -254,7 +257,9 @@ def parse_file_init_response(payload: bytes | bytearray | list[int]) -> dict[str
 
 
 def build_file_list_payload(node_id: int = 0, page: int = 0) -> bytes:
-    return bytes([TEFileCommand.LIST, (page >> 8) & 0xFF, page & 0xFF, (node_id >> 8) & 0xFF, node_id & 0xFF])
+    return bytes(
+        [TEFileCommand.LIST, (page >> 8) & 0xFF, page & 0xFF, (node_id >> 8) & 0xFF, node_id & 0xFF]
+    )
 
 
 def build_file_info_payload(node_id: int = 0) -> bytes:
@@ -301,7 +306,16 @@ def build_file_get_data_payload(page: int) -> bytes:
 
 def build_file_metadata_get_payload(node_id: int = 0, page: int = 0, key: str = "") -> bytes:
     key_bytes = string_to_bytes(key) if key else b""
-    payload = bytearray([TEFileCommand.METADATA, TEFileCommand.METADATA_GET, (node_id >> 8) & 0xFF, node_id & 0xFF, (page >> 8) & 0xFF, page & 0xFF])
+    payload = bytearray(
+        [
+            TEFileCommand.METADATA,
+            TEFileCommand.METADATA_GET,
+            (node_id >> 8) & 0xFF,
+            node_id & 0xFF,
+            (page >> 8) & 0xFF,
+            page & 0xFF,
+        ]
+    )
     if key_bytes:
         payload.extend(key_bytes)
         payload.append(0)
@@ -327,7 +341,12 @@ def parse_file_list_response(payload: bytes | bytearray | list[int]) -> dict[str
     while offset + 7 <= len(raw):
         node_id = (raw[offset] << 8) | raw[offset + 1]
         flags = raw[offset + 2]
-        size = (raw[offset + 3] << 24) | (raw[offset + 4] << 16) | (raw[offset + 5] << 8) | raw[offset + 6]
+        size = (
+            (raw[offset + 3] << 24)
+            | (raw[offset + 4] << 16)
+            | (raw[offset + 5] << 8)
+            | raw[offset + 6]
+        )
         name_end = offset + 7
         while name_end < len(raw) and raw[name_end] != 0:
             name_end += 1
@@ -400,7 +419,11 @@ def status_to_string(status: int) -> str:
         return "not-found"
     if status == TESysexCommand.STATUS_BAD_REQUEST:
         return "bad-request"
-    if TESysexCommand.STATUS_SPECIFIC_ERROR_START <= status < TESysexCommand.STATUS_SPECIFIC_SUCCESS_START:
+    if (
+        TESysexCommand.STATUS_SPECIFIC_ERROR_START
+        <= status
+        < TESysexCommand.STATUS_SPECIFIC_SUCCESS_START
+    ):
         return "command-specific-error"
     return "unknown"
 
@@ -413,15 +436,23 @@ def assert_command_allowed(command: int, payload: bytes | bytearray | list[int])
         return
     subcommand = raw[0]
     metadata_type = raw[1] if len(raw) > 1 else None
-    if not EXPERIMENTAL_WRITE_ENABLED and subcommand == TEFileCommand.METADATA and metadata_type != TEFileCommand.METADATA_GET:
-        raise PermissionError("Blocked write-capable TE metadata subcommand; EXPERIMENTAL_WRITE_ENABLED is false.")
+    if (
+        not EXPERIMENTAL_WRITE_ENABLED
+        and subcommand == TEFileCommand.METADATA
+        and metadata_type != TEFileCommand.METADATA_GET
+    ):
+        raise PermissionError(
+            "Blocked write-capable TE metadata subcommand; EXPERIMENTAL_WRITE_ENABLED is false."
+        )
     if subcommand == TEFileCommand.PLAYBACK:
         action = raw[1] if len(raw) > 1 else None
         if len(raw) != 4 or action not in PLAYBACK_ACTIONS:
             raise PermissionError("Blocked unsupported TE playback action.")
         return
     if not EXPERIMENTAL_WRITE_ENABLED and subcommand in WRITE_FILE_SUBCOMMANDS:
-        raise PermissionError(f"Blocked write-capable TE file subcommand {subcommand}; EXPERIMENTAL_WRITE_ENABLED is false.")
+        raise PermissionError(
+            f"Blocked write-capable TE file subcommand {subcommand}; EXPERIMENTAL_WRITE_ENABLED is false."
+        )
 
 
 def self_test_packing() -> bool:

@@ -89,15 +89,23 @@ class AppSettings:
 
     @property
     def playback_enabled(self) -> bool:
-        return self.sysex_enabled and self.allow_file_playback and self.access_mode in {
-            "read-playback",
-            "expert-write",
-            "full-lab",
-        }
+        return (
+            self.sysex_enabled
+            and self.allow_file_playback
+            and self.access_mode
+            in {
+                "read-playback",
+                "expert-write",
+                "full-lab",
+            }
+        )
 
     @property
     def write_enabled(self) -> bool:
-        return self.access_mode in {"expert-write", "full-lab"} and self.write_arm_phrase.strip().upper() == "WRITE"
+        return (
+            self.access_mode in {"expert-write", "full-lab"}
+            and self.write_arm_phrase.strip().upper() == "WRITE"
+        )
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -119,16 +127,24 @@ class AppSettings:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, object]) -> "AppSettings":
+    def from_dict(cls, data: dict[str, object]) -> AppSettings:
         defaults = cls()
         settings = cls(
             preferred_route=str(data.get("preferred_route", defaults.preferred_route)),
-            preferred_input_port=str(data.get("preferred_input_port", defaults.preferred_input_port)),
-            preferred_output_port=str(data.get("preferred_output_port", defaults.preferred_output_port)),
+            preferred_input_port=str(
+                data.get("preferred_input_port", defaults.preferred_input_port)
+            ),
+            preferred_output_port=str(
+                data.get("preferred_output_port", defaults.preferred_output_port)
+            ),
             access_mode=str(data.get("access_mode", defaults.access_mode)),
-            auto_connect_on_start=bool(data.get("auto_connect_on_start", defaults.auto_connect_on_start)),
+            auto_connect_on_start=bool(
+                data.get("auto_connect_on_start", defaults.auto_connect_on_start)
+            ),
             sysex_enabled=bool(data.get("sysex_enabled", defaults.sysex_enabled)),
-            auto_scan_on_connect=bool(data.get("auto_scan_on_connect", defaults.auto_scan_on_connect)),
+            auto_scan_on_connect=bool(
+                data.get("auto_scan_on_connect", defaults.auto_scan_on_connect)
+            ),
             allow_file_playback=bool(data.get("allow_file_playback", defaults.allow_file_playback)),
             require_playback_confirmation=bool(
                 data.get("require_playback_confirmation", defaults.require_playback_confirmation)

@@ -14,7 +14,9 @@ def readiness_report(midi_report: dict[str, object]) -> dict[str, object]:
     if not ko2_usb:
         actions.append("Connect EP-133 over USB and rerun --list.")
     if ko2_usb and not ko2_midi:
-        actions.append("Windows sees EP-133 as USB Audio only; expose a MIDI endpoint or connect DIN MIDI through a visible interface.")
+        actions.append(
+            "Windows sees EP-133 as USB Audio only; expose a MIDI endpoint or connect DIN MIDI through a visible interface."
+        )
     if live_backend:
         actions.append(f"Native live MIDI backend available: {live_backend}.")
     if not midi_report.get("input_ports"):

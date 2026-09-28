@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import queue
 from typing import Any
 
@@ -16,7 +17,6 @@ from ko2_daw.arranger import (
     default_arranger_project,
 )
 from ko2_daw.midi import MidiMessage
-
 
 GROUP_COLORS = {
     "A": "#f2c230",
@@ -110,7 +110,10 @@ def apply_arranger_patch(gui_module: Any) -> None:
                 if message.kind == "stop":
                     self._arranger_release_follow_notes()
                     self.arranger_queue.put(("follow-stopped",))
-            except Exception as exc:
+            except (
+                # ruff: ignore[BLE001] Relay follower errors to the GUI instead of the MIDI callback.
+                Exception
+            ) as exc:
                 self.arranger_queue.put(("error", exc))
         original_queue_midi_input(self, message)
 
@@ -178,7 +181,10 @@ def apply_arranger_patch(gui_module: Any) -> None:
             font=("Consolas", 10, "bold"),
         )
         status.grid(row=0, column=2, sticky="e")
-        self._tip(title, "Four-group MIDI arranger mapped directly to KO II pad notes A 36-47, B 48-59, C 60-71, and D 72-83.")
+        self._tip(
+            title,
+            "Four-group MIDI arranger mapped directly to KO II pad notes A 36-47, B 48-59, C 60-71, and D 72-83.",
+        )
         self._tip(name, "Arrangement name stored in the non-destructive JSON project.")
         self._tip(status, "Playback, recording, synchronization, and edit status.")
 
@@ -225,9 +231,15 @@ def apply_arranger_patch(gui_module: Any) -> None:
             bg="#bdb7aa",
         )
         loop.pack(side=tk.LEFT)
-        self._tip(bpm_entry, "Arrangement tempo. Master mode schedules MIDI and sends 24 PPQN clock at this BPM.")
+        self._tip(
+            bpm_entry,
+            "Arrangement tempo. Master mode schedules MIDI and sends 24 PPQN clock at this BPM.",
+        )
         self._tip(swing, "Delay alternate sixteenth notes from straight 50% toward 75% swing.")
-        self._tip(sync, "Master sends clock and transport; follow device advances from incoming KO II clock; internal no clock sends notes and transport only.")
+        self._tip(
+            sync,
+            "Master sends clock and transport; follow device advances from incoming KO II clock; internal no clock sends notes and transport only.",
+        )
         self._tip(loop, "Repeat the compiled scene or song until stopped.")
 
         action_specs = (
@@ -312,7 +324,10 @@ def apply_arranger_patch(gui_module: Any) -> None:
                 )
                 button.grid(row=row, column=index + 1, sticky="nsew", padx=2, pady=2)
                 self.arranger_scene_buttons[(scene.scene_id, group)] = button
-                self._tip(button, f"Select Group {group}, {scene.name}. The editor below maps its 12 pads across the clip steps.")
+                self._tip(
+                    button,
+                    f"Select Group {group}, {scene.name}. The editor below maps its 12 pads across the clip steps.",
+                )
 
         tk.Label(
             parent,
@@ -361,7 +376,14 @@ def apply_arranger_patch(gui_module: Any) -> None:
                     selectcolor="#ff4b0b",
                 )
                 check.grid(row=row, column=column, padx=1)
-                self._tip(check, {"muted": "Mute track.", "solo": "Solo track.", "armed": "Arm this group for incoming or app-generated MIDI recording."}[field])
+                self._tip(
+                    check,
+                    {
+                        "muted": "Mute track.",
+                        "solo": "Solo track.",
+                        "armed": "Arm this group for incoming or app-generated MIDI recording.",
+                    }[field],
+                )
             vel = tk.Spinbox(tracks, textvariable=velocity, from_=0, to=200, width=5)
             vel.grid(row=row, column=4, sticky="ew", padx=4)
             trans = tk.Spinbox(tracks, textvariable=transpose, from_=-48, to=48, width=5)
@@ -369,9 +391,13 @@ def apply_arranger_patch(gui_module: Any) -> None:
             for widget in (vel, trans):
                 widget.configure(command=lambda grp=group: self._arranger_track_changed(grp))
                 widget.bind("<Return>", lambda _event, grp=group: self._arranger_track_changed(grp))
-                widget.bind("<FocusOut>", lambda _event, grp=group: self._arranger_track_changed(grp))
+                widget.bind(
+                    "<FocusOut>", lambda _event, grp=group: self._arranger_track_changed(grp)
+                )
             self._tip(vel, "Track velocity scale in percent; 100 preserves recorded velocity.")
-            self._tip(trans, "Track transpose in semitones, applied during playback and MIDI export.")
+            self._tip(
+                trans, "Track transpose in semitones, applied during playback and MIDI export."
+            )
 
         automation = tk.Frame(parent, bg="#d8d4c8")
         automation.grid(row=4, column=0, sticky="nsew", pady=(10, 0))
@@ -388,7 +414,13 @@ def apply_arranger_patch(gui_module: Any) -> None:
         cc_controls = tk.Frame(automation, bg="#bdb7aa", padx=4, pady=4)
         cc_controls.grid(row=1, column=0, sticky="ew", pady=(5, 4))
         for text, variable, start, end, tip in (
-            ("STEP", self.arranger_cc_step, 1, 128, "Sequencer step where the CC value is emitted."),
+            (
+                "STEP",
+                self.arranger_cc_step,
+                1,
+                128,
+                "Sequencer step where the CC value is emitted.",
+            ),
             ("CC", self.arranger_cc_number, 0, 127, "Standard MIDI controller number."),
             ("VALUE", self.arranger_cc_value, 0, 127, "Controller value emitted at this step."),
         ):
@@ -448,10 +480,34 @@ def apply_arranger_patch(gui_module: Any) -> None:
         controls = tk.Frame(parent, bg="#bdb7aa", padx=5, pady=5)
         controls.grid(row=1, column=0, sticky="ew", pady=5)
         for label, variable, values, width, tip in (
-            ("STEPS", self.arranger_steps, (4, 8, 16, 32, 64, 128), 6, "Clip length at four steps per beat. Different groups may use different lengths for polymeter."),
-            ("VEL", self.arranger_step_velocity, tuple(range(1, 128)), 5, "Velocity assigned to newly inserted steps."),
-            ("PROB %", self.arranger_probability, tuple(range(0, 101)), 5, "Deterministic playback probability assigned to newly inserted steps."),
-            ("GATE", self.arranger_duration, (0.25, 0.5, 0.75, 0.9, 1, 2, 4, 8), 5, "New note duration measured in sequencer steps."),
+            (
+                "STEPS",
+                self.arranger_steps,
+                (4, 8, 16, 32, 64, 128),
+                6,
+                "Clip length at four steps per beat. Different groups may use different lengths for polymeter.",
+            ),
+            (
+                "VEL",
+                self.arranger_step_velocity,
+                tuple(range(1, 128)),
+                5,
+                "Velocity assigned to newly inserted steps.",
+            ),
+            (
+                "PROB %",
+                self.arranger_probability,
+                tuple(range(101)),
+                5,
+                "Deterministic playback probability assigned to newly inserted steps.",
+            ),
+            (
+                "GATE",
+                self.arranger_duration,
+                (0.25, 0.5, 0.75, 0.9, 1, 2, 4, 8),
+                5,
+                "New note duration measured in sequencer steps.",
+            ),
         ):
             _label(controls, label, tk).pack(side=tk.LEFT)
             combo = ttk.Combobox(
@@ -466,7 +522,9 @@ def apply_arranger_patch(gui_module: Any) -> None:
             if label == "STEPS":
                 combo.bind("<<ComboboxSelected>>", lambda _event: self._arranger_set_steps())
         clear = tk.Button(controls, text="CLEAR", command=self._arranger_clear_clip, bg="#efeadf")
-        quantize = tk.Button(controls, text="QUANTIZE", command=self._arranger_quantize, bg="#efeadf")
+        quantize = tk.Button(
+            controls, text="QUANTIZE", command=self._arranger_quantize, bg="#efeadf"
+        )
         clear.pack(side=tk.RIGHT, padx=2)
         quantize.pack(side=tk.RIGHT, padx=2)
         self._tip(clear, "Clear notes and automation from the selected clip after confirmation.")
@@ -487,7 +545,10 @@ def apply_arranger_patch(gui_module: Any) -> None:
         canvas.bind("<Button-3>", self._arranger_canvas_audition)
         canvas.bind("<Configure>", lambda _event: self._draw_arranger_grid())
         self.arranger_canvas = canvas
-        self._tip(canvas, "Left-click a pad/step cell to toggle a note. Right-click a row to audition that KO II pad. Strong vertical lines mark beats.")
+        self._tip(
+            canvas,
+            "Left-click a pad/step cell to toggle a note. Right-click a row to audition that KO II pad. Strong vertical lines mark beats.",
+        )
 
     def _build_arranger_song_panel(self, parent) -> None:
         parent.columnconfigure(0, weight=1)
@@ -511,7 +572,10 @@ def apply_arranger_patch(gui_module: Any) -> None:
             tree.column(column, width=width, anchor="center")
         tree.grid(row=1, column=0, sticky="nsew", pady=5)
         self.arranger_song_tree = tree
-        self._tip(tree, "Ordered scene chain. Scene duration is the longest group clip, so shorter clips repeat polymetrically.")
+        self._tip(
+            tree,
+            "Ordered scene chain. Scene duration is the longest group clip, so shorter clips repeat polymetrically.",
+        )
         controls = tk.Frame(parent, bg="#bdb7aa", padx=5, pady=5)
         controls.grid(row=2, column=0, sticky="ew")
         repeat = tk.Spinbox(
@@ -522,7 +586,9 @@ def apply_arranger_patch(gui_module: Any) -> None:
             width=5,
         )
         repeat.pack(side=tk.LEFT)
-        self._tip(repeat, "Number of times to repeat the selected scene when adding it to the song.")
+        self._tip(
+            repeat, "Number of times to repeat the selected scene when adding it to the song."
+        )
         for text, command, tip in (
             ("ADD", self._arranger_song_add, "Append the currently selected scene."),
             ("DEL", self._arranger_song_remove, "Remove the selected song section."),
@@ -552,7 +618,10 @@ def apply_arranger_patch(gui_module: Any) -> None:
             font=("Consolas", 9),
         )
         info.grid(row=3, column=0, sticky="ew", pady=(8, 0))
-        self._tip(info, "The arranger uses the KO II's documented MIDI pad ranges and standard transport/clock messages.")
+        self._tip(
+            info,
+            "The arranger uses the KO II's documented MIDI pad ranges and standard transport/clock messages.",
+        )
 
     def _arranger_select(self, scene_id: str, group: str) -> None:
         self.arranger_session.select(scene_id, group)
@@ -714,7 +783,9 @@ def apply_arranger_patch(gui_module: Any) -> None:
             try:
                 self._arranger_send_engine(MidiMessage.note_off(note, channel=channel))
             except Exception:
-                pass
+                logging.getLogger(__name__).debug(
+                    "Release remaining notes if one backend note-off fails.", exc_info=True
+                )
         self.arranger_follow_active_notes.clear()
 
     def _arranger_send_engine(self, message: MidiMessage) -> None:
@@ -1058,22 +1129,20 @@ def apply_arranger_patch(gui_module: Any) -> None:
     def _show_arranger_help(self) -> None:
         messagebox.showinfo(
             "KO II Scene Arranger Guide",
-            "\n".join(
-                [
-                    "GROUPS / SCENES selects one of four KO II MIDI groups and eight clip scenes.",
-                    "Left-click the 12 x step grid to sequence pads; right-click a row to audition it.",
-                    "M, S, and R mean mute, solo, and record-arm. Velocity and transpose are per group.",
-                    "SCENE loops the selected scene. SONG follows the ordered chain at right.",
-                    "Master sends Start, Stop, 24 PPQN clock, notes, and CC to the connected KO II.",
-                    "Follow device waits for incoming Start/Clock and plays the arrangement in KO II time.",
-                    "Internal no clock plays notes and transport without becoming clock master.",
-                    "REC captures incoming hardware MIDI and app pad actions into every armed group.",
-                    "IMPORT TAKE converts the Performance Recorder take into four scene clips.",
-                    "SAVE writes non-destructive JSON. MIDI exports a type-1 Standard MIDI File.",
-                    "",
-                    "Project edits do not write EP-133 storage. Device project downloads remain read-only,",
-                    "content-addressed, and automatically analyzed for pad-to-sound assignments.",
-                ]
+            (
+                "GROUPS / SCENES selects one of four KO II MIDI groups and eight clip scenes.\n"
+                "Left-click the 12 x step grid to sequence pads; right-click a row to audition it.\n"
+                "M, S, and R mean mute, solo, and record-arm. Velocity and transpose are per group.\n"
+                "SCENE loops the selected scene. SONG follows the ordered chain at right.\n"
+                "Master sends Start, Stop, 24 PPQN clock, notes, and CC to the connected KO II.\n"
+                "Follow device waits for incoming Start/Clock and plays the arrangement in KO II time.\n"
+                "Internal no clock plays notes and transport without becoming clock master.\n"
+                "REC captures incoming hardware MIDI and app pad actions into every armed group.\n"
+                "IMPORT TAKE converts the Performance Recorder take into four scene clips.\n"
+                "SAVE writes non-destructive JSON. MIDI exports a type-1 Standard MIDI File.\n"
+                "\n"
+                "Project edits do not write EP-133 storage. Device project downloads remain read-only,\n"
+                "content-addressed, and automatically analyzed for pad-to-sound assignments."
             ),
         )
 
@@ -1140,6 +1209,9 @@ def _find_menu(menu, label: str):
                 child = menu.entrycget(index, "menu")
                 return menu.nametowidget(child) if child else None
         except Exception:
+            logging.getLogger(__name__).debug(
+                "Optional menu discovery must tolerate missing GUI entries.", exc_info=True
+            )
             continue
     return None
 

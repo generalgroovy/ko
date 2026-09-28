@@ -20,7 +20,9 @@ def apply_detection_menu_patch(gui_module: Any) -> None:
         menu = self.root.nametowidget(self.root.cget("menu"))
         detect_menu = tk.Menu(menu, tearoff=False)
         detect_menu.add_command(label="Refresh MIDI", command=self._refresh_report)
-        detect_menu.add_command(label="EP-133 Detection Summary", command=self._show_midi_detection_summary)
+        detect_menu.add_command(
+            label="EP-133 Detection Summary", command=self._show_midi_detection_summary
+        )
         menu.add_cascade(label="MIDI Detect", menu=detect_menu)
 
     app_class._build_menu = _build_menu

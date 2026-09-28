@@ -2,19 +2,18 @@
 
 from __future__ import annotations
 
-from array import array
-from dataclasses import asdict, dataclass, field
 import copy
 import json
 import math
-from pathlib import Path
 import struct
 import tempfile
 import uuid
 import wave
+from array import array
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
 
 from ko2_daw.io_utils import atomic_write_text
-
 
 DEFAULT_SAMPLE_RATE = 46875
 RENDER_BLOCK_FRAMES = 4096
@@ -136,10 +135,11 @@ class AudioProject:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, object]) -> "AudioProject":
+    def from_dict(cls, data: dict[str, object]) -> AudioProject:
         tracks = data.get("tracks")
         clips = data.get("clips")
         if not isinstance(tracks, list) or not isinstance(clips, list):
+            # ruff: ignore[TRY004] Invalid serialized data preserves the public ValueError contract.
             raise ValueError("Audio project tracks and clips must be arrays.")
         project = cls(
             name=str(data.get("name", "KO II Audio Project")),
@@ -248,15 +248,11 @@ class AudioSession:
             raise ValueError("An audio project must keep at least one track.")
         self.track(track_id)
         self.checkpoint()
-        self.project.tracks = [
-            track for track in self.project.tracks if track.track_id != track_id
-        ]
+        self.project.tracks = [track for track in self.project.tracks if track.track_id != track_id]
         removed_clip_ids = {
             clip.clip_id for clip in self.project.clips if clip.track_id == track_id
         }
-        self.project.clips = [
-            clip for clip in self.project.clips if clip.track_id != track_id
-        ]
+        self.project.clips = [clip for clip in self.project.clips if clip.track_id != track_id]
         if self.selected_clip_id in removed_clip_ids:
             self.selected_clip_id = None
         self.selected_track_id = self.project.tracks[0].track_id
@@ -411,9 +407,7 @@ class AudioSession:
         right.start_sec = float(timeline_sec)
         left.fade_out_sec = min(left.fade_out_sec, left.duration_sec)
         right.fade_in_sec = min(right.fade_in_sec, right.duration_sec)
-        self.project.clips = [
-            item for item in self.project.clips if item.clip_id != clip_id
-        ]
+        self.project.clips = [item for item in self.project.clips if item.clip_id != clip_id]
         self.project.clips.extend([left, right])
         self.selected_clip_id = right.clip_id
         return left, right
@@ -433,9 +427,7 @@ class AudioSession:
     def delete_clip(self, clip_id: str) -> None:
         self.clip(clip_id)
         self.checkpoint()
-        self.project.clips = [
-            clip for clip in self.project.clips if clip.clip_id != clip_id
-        ]
+        self.project.clips = [clip for clip in self.project.clips if clip.clip_id != clip_id]
         if self.selected_clip_id == clip_id:
             self.selected_clip_id = None
 
@@ -446,9 +438,10 @@ class AudioSession:
         )
 
     @classmethod
-    def load(cls, path: str | Path) -> "AudioSession":
+    def load(cls, path: str | Path) -> AudioSession:
         raw = json.loads(Path(path).read_text(encoding="utf-8"))
         if not isinstance(raw, dict):
+            # ruff: ignore[TRY004] Invalid serialized data preserves the public ValueError contract.
             raise ValueError("Audio project must be a JSON object.")
         return cls(AudioProject.from_dict(raw))
 
@@ -537,9 +530,7 @@ def read_wave_source(path: str | Path) -> WaveSource:
     samples = _decode_pcm(payload, sample_width)
     expected = frame_count * channels
     if len(samples) != expected:
-        raise ValueError(
-            f"WAV payload decoded to {len(samples)} samples; expected {expected}."
-        )
+        raise ValueError(f"WAV payload decoded to {len(samples)} samples; expected {expected}.")
     return WaveSource(
         path=source,
         sample_rate=sample_rate,
@@ -566,15 +557,10 @@ def render_audio_project(
     duration = project.duration_sec + tail_sec
     if duration > max_duration_sec:
         raise ValueError(
-            f"Project duration {duration:.1f}s exceeds render limit "
-            f"{max_duration_sec:.1f}s."
+            f"Project duration {duration:.1f}s exceeds render limit " f"{max_duration_sec:.1f}s."
         )
     total_frames = max(1, math.ceil(duration * project.sample_rate))
-    sources = {
-        clip.path: read_wave_source(clip.path)
-        for clip in project.clips
-        if not clip.muted
-    }
+    sources = {clip.path: read_wave_source(clip.path) for clip in project.clips if not clip.muted}
     gain_scale = 1.0
     normalized_gain_db = 0.0
     if normalize and project.clips:

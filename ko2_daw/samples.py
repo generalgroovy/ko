@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, replace
 import json
-from pathlib import Path
 import re
 import sys
 import tempfile
 import wave
-
+from dataclasses import asdict, dataclass, replace
+from pathlib import Path
 
 MAX_SAMPLE_SLOTS = 999
 
@@ -65,6 +64,7 @@ class SampleLibrary:
         """
         data = json.loads(Path(path).read_text(encoding="utf-8-sig"))
         if not isinstance(data, dict) or not isinstance(data.get("samples"), list):
+            # ruff: ignore[TRY004] Invalid serialized data preserves the public ValueError contract.
             raise ValueError("Web manifest must contain a samples array.")
         if data.get("schema"):
             raise ValueError("Expected a Web MIDI Lab export, not a desktop manifest.")
@@ -79,6 +79,7 @@ class SampleLibrary:
         seen_paths = {Path(sample.path).resolve() for sample in self.samples.values()}
         for index, (entry, slot) in enumerate(zip(entries, free_slots), start=1):
             if not isinstance(entry, dict):
+                # ruff: ignore[TRY004] Invalid serialized data preserves the public ValueError contract.
                 raise ValueError(f"Sample {index} must be an object.")
             name = entry.get("name")
             if not isinstance(name, str) or not name.strip():
@@ -110,7 +111,9 @@ class SampleLibrary:
         target = Path(path).resolve()
         target.parent.mkdir(parents=True, exist_ok=True)
         payload = json.dumps(self.to_manifest(), indent=2, sort_keys=True)
-        with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False, dir=target.parent) as handle:
+        with tempfile.NamedTemporaryFile(
+            "w", encoding="utf-8", delete=False, dir=target.parent
+        ) as handle:
             handle.write(payload)
             handle.write("\n")
             temp_name = handle.name
@@ -118,24 +121,32 @@ class SampleLibrary:
         return target
 
     @classmethod
-    def load(cls, path: str | Path) -> "SampleLibrary":
+    def load(cls, path: str | Path) -> SampleLibrary:
         source = Path(path).resolve()
         data = json.loads(source.read_text(encoding="utf-8-sig"))
         if not isinstance(data, dict) or data.get("schema") != "ko2-sampler-daw.sample-manifest.v1":
-            raise ValueError("Choose a desktop sample manifest. Use IMPORT WEB LIBRARY for browser exports.")
+            raise ValueError(
+                "Choose a desktop sample manifest. Use IMPORT WEB LIBRARY for browser exports."
+            )
         entries = data.get("samples")
         if not isinstance(entries, list) or len(entries) > MAX_SAMPLE_SLOTS:
             raise ValueError("Desktop manifest must contain at most 999 samples.")
         restored = cls()
         for index, entry in enumerate(entries, start=1):
             if not isinstance(entry, dict):
-                raise ValueError(f"Sample {index} must be an object.")  # noqa: TRY004 - invalid JSON value
+                # ruff: ignore[TRY004] Invalid serialized data preserves the public ValueError contract.
+                raise ValueError(f"Sample {index} must be an object.")
             slot = entry.get("slot")
             _validate_slot(slot)
             if slot in restored.samples:
                 raise ValueError(f"Duplicate sample slot: {slot}")
             name, filename = entry.get("name"), entry.get("path")
-            if not isinstance(name, str) or not name.strip() or not isinstance(filename, str) or not filename.strip():
+            if (
+                not isinstance(name, str)
+                or not name.strip()
+                or not isinstance(filename, str)
+                or not filename.strip()
+            ):
                 raise ValueError(f"Sample {index} needs a name and WAV path.")
             audio = Path(filename)
             if not audio.is_absolute():

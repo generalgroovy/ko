@@ -28,9 +28,7 @@ def _tar(sound_id: int, pattern: bytes = b"\x00\x01") -> bytes:
         for pad in range(1, 13):
             assigned = sound_id if (group, pad) == ("a", 1) else 0
             entries[f"pads/{group}/p{pad:02d}"] = (
-                b"\x00"
-                + int(assigned).to_bytes(2, "little", signed=True)
-                + bytes(24)
+                b"\x00" + int(assigned).to_bytes(2, "little", signed=True) + bytes(24)
             )
     with tarfile.open(fileobj=output, mode="w") as archive:
         for name, payload in entries.items():
@@ -142,3 +140,36 @@ def test_project_catalog_cli_reports_local_integrity(tmp_path, capsys) -> None:
     assert result == 0
     assert "project_catalog_verified=1" in output
     assert "project_catalog_missing=4000,5000,6000,7000,8000,9000,10000,11000" in output
+
+
+def test_backup_progress_keeps_each_projects_identity_when_callbacks_are_retained(tmp_path) -> None:
+    class RetainingClient(FakeClient):
+        def __init__(self, downloads):
+            super().__init__(downloads)
+            self.callbacks = []
+
+        def download(self, node_id, *, include_metadata, progress):
+            self.callbacks.append(progress)
+            return super().download(node_id, include_metadata=include_metadata, progress=progress)
+
+    client = RetainingClient(
+        {3000: _download(3000, "01", _tar(34)), 4000: _download(4000, "02", _tar(35))}
+    )
+    events = []
+    backup_project_archives(
+        client,
+        tmp_path,
+        projects=((1, 3000), (2, 4000)),
+        progress=events.append,
+    )
+
+    # A queued notification can outlive the loop iteration that registered it.
+    events.clear()
+    for callback in client.callbacks:
+        callback(64, 128, "retained-progress")
+
+    assert [(event.node_id, event.slot, event.project_index) for event in events] == [
+        (3000, 1, 1),
+        (4000, 2, 2),
+    ]
+    assert all(event.bytes_done == 64 and event.bytes_total == 128 for event in events)

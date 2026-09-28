@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import queue
 import threading
+from pathlib import Path
 from typing import Any
 
 from ko2_daw.device_transfer import (
@@ -263,23 +263,17 @@ def apply_device_library_patch(gui_module: Any) -> None:
     def _show_device_library_help(self) -> None:
         messagebox.showinfo(
             "EP-133 Device Library Guide",
-            "\n".join(
-                [
-                    "REFRESH loads sounds from the live tree or latest integrity snapshot.",
-                    "SCAN refreshes the complete read-only device tree.",
-                    "FETCH + WAV downloads raw PCM, metadata, verifies hashes, and creates WAV.",
-                    "FETCH RAW preserves the exact device bytes without WAV conversion.",
-                    "PLAY LOCAL previews a downloaded WAV on this computer.",
-                    "PLAY DEVICE and STOP DEVICE control EP-133 file audition.",
-                    "OPEN FOLDER opens the immutable SHA-256 bundle.",
-                    "",
-                    "Downloads are read-only and cannot be canceled mid-file. The app "
-                    "blocks disconnect, reconnect, and close until every declared page "
-                    "is consumed.",
-                    "Project directories can be downloaded from Hardware Files using "
-                    "Download Selected Hardware Node. Restore and other writes remain "
-                    "blocked.",
-                ]
+            (
+                "REFRESH loads sounds from the live tree or latest integrity snapshot.\n"
+                "SCAN refreshes the complete read-only device tree.\n"
+                "FETCH + WAV downloads raw PCM, metadata, verifies hashes, and creates WAV.\n"
+                "FETCH RAW preserves the exact device bytes without WAV conversion.\n"
+                "PLAY LOCAL previews a downloaded WAV on this computer.\n"
+                "PLAY DEVICE and STOP DEVICE control EP-133 file audition.\n"
+                "OPEN FOLDER opens the immutable SHA-256 bundle.\n"
+                "\n"
+                "Downloads are read-only and cannot be canceled mid-file. The app blocks disconnect, reconnect, and close until every declared page is consumed.\n"
+                "Project directories can be downloaded from Hardware Files using Download Selected Hardware Node. Restore and other writes remain blocked."
             ),
         )
 
@@ -308,7 +302,9 @@ def apply_device_library_patch(gui_module: Any) -> None:
             if artifact:
                 manifest = json.loads(artifact.manifest_path.read_text(encoding="utf-8"))
                 match = manifest.get("crc_matches_metadata")
-                integrity = "CRC OK" if match is True else ("SHA-256" if match is None else "CRC FAIL")
+                integrity = (
+                    "CRC OK" if match is True else ("SHA-256" if match is None else "CRC FAIL")
+                )
             self.device_library_entries[iid] = {**entry, "artifact": artifact}
             tree.insert(
                 "",
@@ -436,9 +432,7 @@ def apply_device_library_patch(gui_module: Any) -> None:
                     return [bytes.fromhex(response.raw_hex) for response in responses]
 
                 def progress(done: int, total: int, stage: str) -> None:
-                    self.device_library_queue.put(
-                        ("progress", node, name, done, total, stage)
-                    )
+                    self.device_library_queue.put(("progress", node, name, done, total, stage))
 
                 client = DeviceFileClient(
                     exchange,
@@ -458,7 +452,10 @@ def apply_device_library_patch(gui_module: Any) -> None:
                     export_wav=export_wav,
                 )
                 self.device_library_queue.put(("complete", entry, download, artifact))
-            except Exception as exc:
+            except (
+                # ruff: ignore[BLE001] Relay download failures and always release the transfer lock.
+                Exception
+            ) as exc:
                 self.device_library_queue.put(("error", exc))
             finally:
                 self._device_library_transfer_lock.release()
@@ -477,23 +474,18 @@ def apply_device_library_patch(gui_module: Any) -> None:
                 percent = 100.0 if not total else (float(done) / float(total)) * 100.0
                 self.device_library_progress.set(percent)
                 self.device_library_status.set(
-                    f"{name}: {stage} {_format_bytes(int(done))} / "
-                    f"{_format_bytes(int(total))}"
+                    f"{name}: {stage} {_format_bytes(int(done))} / " f"{_format_bytes(int(total))}"
                 )
             elif kind == "complete":
                 _, entry, download, artifact = event
                 self.device_library_progress.set(100)
                 integrity = (
-                    "CRC verified"
-                    if download.crc_matches_metadata is True
-                    else "SHA-256 captured"
+                    "CRC verified" if download.crc_matches_metadata is True else "SHA-256 captured"
                 )
                 self.device_library_status.set(
                     f"{download.file_name}: {integrity}, {download.pages} pages"
                 )
-                self._set_action(
-                    f"downloaded device node {download.node_id}: {integrity}"
-                )
+                self._set_action(f"downloaded device node {download.node_id}: {integrity}")
                 if artifact.wav_path:
                     slot = _parse_slot(download.file_name)
                     try:
@@ -502,7 +494,10 @@ def apply_device_library_patch(gui_module: Any) -> None:
                             slot=slot if slot is not None else None,
                         )
                         self._refresh_sample_tree()
-                    except Exception as exc:
+                    except (
+                        # ruff: ignore[BLE001] Keep verified download artifacts when sample registration fails.
+                        Exception
+                    ) as exc:
                         self._log(f"local sample registration failed: {exc}")
                 if artifact.project_analysis_path:
                     self._show_project_archive_analysis(artifact)
@@ -614,6 +609,7 @@ def apply_device_library_patch(gui_module: Any) -> None:
         try:
             play_wav(artifact.wav_path)
             self.device_library_status.set(f"playing local {artifact.wav_path.name}")
+        # ruff: ignore[BLE001] Show native playback errors in the GUI.
         except Exception as exc:
             messagebox.showerror("EP-133 Device Library", str(exc))
 
@@ -673,9 +669,7 @@ def apply_device_library_patch(gui_module: Any) -> None:
             )
             return
         try:
-            analysis = json.loads(
-                artifact.project_analysis_path.read_text(encoding="utf-8")
-            )
+            analysis = json.loads(artifact.project_analysis_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
             messagebox.showerror("EP-133 Project Inspector", str(exc))
             return

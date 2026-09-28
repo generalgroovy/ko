@@ -28,15 +28,24 @@ def test_browser_export_migrates_real_audio_preserving_existing_slots(tmp_path):
     library = SampleLibrary()
     original = library.add_wav(existing, slot=0)
     wav_file(tmp_path / "Kick _ one.wav")
-    source = manifest(tmp_path / "web.json", [{
-        "name": "Kick / one", "fileName": "kick.mp3", "duration": 999,
-        "sampleRate": 1, "channels": 99, "source": "local",
-    }])
+    source = manifest(
+        tmp_path / "web.json",
+        [
+            {
+                "name": "Kick / one",
+                "fileName": "kick.mp3",
+                "duration": 999,
+                "sampleRate": 1,
+                "channels": 99,
+                "source": "local",
+            }
+        ],
+    )
     assert library.import_web_manifest(source, tmp_path) == 1
     assert library.samples[0] == original
     migrated = library.samples[1]
     assert migrated.name == "Kick / one"
-    assert migrated.duration_sec == .01
+    assert migrated.duration_sec == 0.01
     assert migrated.sample_rate == 8000
     assert migrated.channels == 2
     assert migrated.frames == 80
@@ -45,13 +54,16 @@ def test_browser_export_migrates_real_audio_preserving_existing_slots(tmp_path):
     assert SampleLibrary.load(saved).ordered() == library.ordered()
 
 
-@pytest.mark.parametrize("entries, message", [
-    ([{"name": "kick"}, {"name": "missing"}], "Missing exported WAV"),
-    ([{"name": "kick"}, {"name": "kick"}], "Duplicate WAV"),
-    ([{"name": "a/b"}, {"name": "a?b"}], "Duplicate WAV"),
-    ([{"name": "kick"}, {}], "nonempty name"),
-    ([None], "must be an object"),
-])
+@pytest.mark.parametrize(
+    "entries, message",
+    [
+        ([{"name": "kick"}, {"name": "missing"}], "Missing exported WAV"),
+        ([{"name": "kick"}, {"name": "kick"}], "Duplicate WAV"),
+        ([{"name": "a/b"}, {"name": "a?b"}], "Duplicate WAV"),
+        ([{"name": "kick"}, {}], "nonempty name"),
+        ([None], "must be an object"),
+    ],
+)
 def test_bad_batches_leave_library_unchanged(tmp_path, entries, message):
     wav_file(tmp_path / "kick.wav")
     wav_file(tmp_path / "a_b.wav")
@@ -101,12 +113,19 @@ def test_symlink_cannot_escape_audio_directory(tmp_path):
 def test_cli_exports_without_querying_midi_and_protects_output(tmp_path, monkeypatch, capsys):
     def no_midi():
         pytest.fail("Local migration must not query MIDI")
+
     monkeypatch.setattr(app, "midi_capability_report", no_midi)
     wav_file(tmp_path / "kick.wav")
     source = manifest(tmp_path / "web.json", [{"name": "kick"}])
     output = tmp_path / "desktop.json"
-    args = ["--import-web-manifest", str(source), "--sample-audio-dir", str(tmp_path),
-            "--sample-manifest-output", str(output)]
+    args = [
+        "--import-web-manifest",
+        str(source),
+        "--sample-audio-dir",
+        str(tmp_path),
+        "--sample-manifest-output",
+        str(output),
+    ]
     assert app.main(args) == 0
     assert "Imported 1 local sample(s)" in capsys.readouterr().out
     before = output.read_bytes()
@@ -121,14 +140,24 @@ def test_invalid_wav_is_clear_cli_error_without_output(tmp_path, capsys):
     source = manifest(tmp_path / "web.json", [{"name": "kick"}])
     output = tmp_path / "desktop.json"
     with pytest.raises(SystemExit) as result:
-        app.main(["--import-web-manifest", str(source), "--sample-audio-dir", str(tmp_path),
-                  "--sample-manifest-output", str(output)])
+        app.main(
+            [
+                "--import-web-manifest",
+                str(source),
+                "--sample-audio-dir",
+                str(tmp_path),
+                "--sample-manifest-output",
+                str(output),
+            ]
+        )
     assert result.value.code == 2
     assert "error:" in capsys.readouterr().err
     assert not output.exists()
 
 
-@pytest.mark.parametrize("args", [["--import-web-manifest", "web.json"], ["--sample-audio-dir", "."]])
+@pytest.mark.parametrize(
+    "args", [["--import-web-manifest", "web.json"], ["--sample-audio-dir", "."]]
+)
 def test_incomplete_cli_arguments_are_rejected(args):
     with pytest.raises(SystemExit) as result:
         app.main(args)

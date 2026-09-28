@@ -30,7 +30,9 @@ def resolve_ko2_route(midi_report: dict[str, object], preferred: str = "auto") -
     """
     input_ports = list(midi_report.get("input_ports") or [])
     output_ports = list(midi_report.get("output_ports") or [])
-    ko2_ports = collect_ko2_ports(input_ports, output_ports, midi_report.get("ko2_midi_ports") or [])
+    ko2_ports = collect_ko2_ports(
+        input_ports, output_ports, midi_report.get("ko2_midi_ports") or []
+    )
     ko2_usb_connected = bool(midi_report.get("ko2_usb_connected"))
 
     if preferred not in {"auto", "usb-midi", "quad-capture"}:

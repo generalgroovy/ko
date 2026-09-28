@@ -40,6 +40,8 @@ def test_replay_invokes_observer(tmp_path) -> None:
     path = recorder.save(tmp_path / "transport.jsonl")
     replay = ProtocolReplay.load(path)
     seen = []
-    count = replay.replay(lambda event, message: seen.append((event.kind, message.kind if message else None)))
+    count = replay.replay(
+        lambda event, message: seen.append((event.kind, message.kind if message else None))
+    )
     assert count == 2
     assert seen == [("start", "start"), ("stop", "stop")]

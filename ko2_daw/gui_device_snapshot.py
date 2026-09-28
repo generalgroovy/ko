@@ -31,14 +31,23 @@ def apply_device_snapshot_patch(gui_module: Any) -> None:
         original_build_menu(self)
         menu = self.root.nametowidget(self.root.cget("menu"))
         device_menu = tk.Menu(menu, tearoff=False)
-        device_menu.add_command(label="Capture Integrity Snapshot", command=self._capture_integrity_snapshot)
-        device_menu.add_command(label="Open Device Files", command=getattr(self, "_show_file_explorer_window", lambda: None))
-        device_menu.add_command(label="MIDI Detection", command=getattr(self, "_show_midi_detection", lambda: None))
+        device_menu.add_command(
+            label="Capture Integrity Snapshot", command=self._capture_integrity_snapshot
+        )
+        device_menu.add_command(
+            label="Open Device Files",
+            command=getattr(self, "_show_file_explorer_window", lambda: None),
+        )
+        device_menu.add_command(
+            label="MIDI Detection", command=getattr(self, "_show_midi_detection", lambda: None)
+        )
         menu.add_cascade(label="Device", menu=device_menu)
 
     def _capture_integrity_snapshot(self) -> None:
         if not self.live_input_port or not self.live_output_port:
-            messagebox.showinfo("EP-133 Snapshot", "Connect EP-133 live before capturing a device snapshot.")
+            messagebox.showinfo(
+                "EP-133 Snapshot", "Connect EP-133 live before capturing a device snapshot."
+            )
             return
         if not self.app_settings.sysex_enabled:
             messagebox.showinfo("EP-133 Snapshot", "SysEx is disabled in Communication settings.")
@@ -76,9 +85,14 @@ def apply_device_snapshot_patch(gui_module: Any) -> None:
                     route=route,
                     exchange=exchange,
                 )
-                path = save_device_snapshot(snapshot, self.project_root / "ep133_device_snapshot.json")
+                path = save_device_snapshot(
+                    snapshot, self.project_root / "ep133_device_snapshot.json"
+                )
                 self.device_snapshot_results.put(("ok", (snapshot, path)))
-            except Exception as exc:
+            except (
+                # ruff: ignore[BLE001] Relay snapshot failures and always release the scan lock.
+                Exception
+            ) as exc:
                 self.device_snapshot_results.put(("error", exc))
             finally:
                 self._hardware_scan_lock.release()
@@ -98,9 +112,7 @@ def apply_device_snapshot_patch(gui_module: Any) -> None:
                 continue
             snapshot, path = payload
             short_hash = snapshot.integrity_sha256[:12]
-            self.hardware_status.set(
-                f"snapshot: {len(snapshot.records)} records / {short_hash}"
-            )
+            self.hardware_status.set(f"snapshot: {len(snapshot.records)} records / {short_hash}")
             self._log(
                 f"integrity snapshot saved: {path} | records={len(snapshot.records)} "
                 f"files={len(snapshot.files)} sha256={snapshot.integrity_sha256}"

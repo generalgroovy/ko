@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 from typing import Any
 
 from ko2_daw.midi import MidiMessage
-from ko2_daw.song_timeline import DEFAULT_STEPS, SONG_NUMBERS, TRACKS, SongTimelineSet
+from ko2_daw.song_timeline import SONG_NUMBERS, TRACKS, SongTimelineSet
 
 POLL_MS = 120
 NOTE_GROUPS = {
@@ -38,7 +39,6 @@ def apply_song_timeline_patch(gui_module: Any) -> None:
 
     tk = gui_module.tk
     original_init = app_class.__init__
-    original_build_device_timeline = getattr(app_class, "_build_device_timeline")
     original_add_hardware_entry = app_class._add_hardware_entry
     original_clear_hardware_cache = app_class._clear_hardware_cache
     original_queue_midi_input = app_class._queue_midi_input
@@ -139,7 +139,10 @@ def apply_song_timeline_patch(gui_module: Any) -> None:
     def _mark_current_step(self, lane: str) -> None:
         if original_mark_current_step is not None:
             original_mark_current_step(self, lane)
-        step = int(self.runtime_state.clock_ticks % self.song_timeline.current_song.tracks[lane].length_steps)
+        step = int(
+            self.runtime_state.clock_ticks
+            % self.song_timeline.current_song.tracks[lane].length_steps
+        )
         self.song_timeline.mark_step(lane, step, "pad", evidence="app action")
         self._draw_song_timeline()
 
@@ -152,7 +155,9 @@ def apply_song_timeline_patch(gui_module: Any) -> None:
                 if selected:
                     path = selected[0]
         except Exception:
-            pass
+            logging.getLogger(__name__).debug(
+                "A stale optional selection must not discard the new timeline entry.", exc_info=True
+            )
         self.song_timeline.infer_from_file_entry(path, kind, node, name, size)
         self._draw_song_timeline()
 
@@ -197,7 +202,10 @@ def apply_song_timeline_patch(gui_module: Any) -> None:
                 return
             self.group.set(track)
             self.session.selected_group = track
-            step = int(self.runtime_state.clock_ticks % self.song_timeline.current_song.tracks[track].length_steps)
+            step = int(
+                self.runtime_state.clock_ticks
+                % self.song_timeline.current_song.tracks[track].length_steps
+            )
             component = f"note {message.note} vel {message.velocity}"
             self.song_timeline.mark_step(track, step, component, evidence="incoming MIDI")
             self.song_timeline.select_track(track)

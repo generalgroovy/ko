@@ -133,7 +133,7 @@ def apply_state_poll_patch(gui_module: Any) -> None:
 
     def _set_bpm(self, value: float) -> None:
         bpm = float(value)
-        self.state_poll_values["bpm"] = str(int(round(bpm)))
+        self.state_poll_values["bpm"] = str(round(bpm))
         self._state_poll_mark("bpm", "app", self.state_poll_values["bpm"])
         original_set_bpm(self, bpm)
 
@@ -144,7 +144,7 @@ def apply_state_poll_patch(gui_module: Any) -> None:
         original_send_mod_wheel(self, fader)
 
     def _state_poll_start(self) -> None:
-        self.state_poll_values["bpm"] = str(int(round(float(self.bpm.get()))))
+        self.state_poll_values["bpm"] = str(round(float(self.bpm.get())))
         self.state_poll_values["group"] = self.group.get()
         self._state_poll_tick()
 
@@ -228,11 +228,7 @@ def apply_state_poll_patch(gui_module: Any) -> None:
 
     def _state_poll_render(self) -> None:
         now = monotonic()
-        active = [
-            label
-            for label, until in self.state_poll_pressed_until.items()
-            if until >= now
-        ]
+        active = [label for label, until in self.state_poll_pressed_until.items() if until >= now]
         expired = [label for label, until in self.state_poll_pressed_until.items() if until < now]
         for label in expired:
             self.state_poll_pressed_until.pop(label, None)

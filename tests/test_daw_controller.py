@@ -2,17 +2,36 @@ import contextlib
 import io
 import tempfile
 import unittest
-from unittest.mock import patch
 import wave
 from pathlib import Path
+from unittest.mock import patch
 
-from ko2_daw.app import build_sysex_probe_frame, choose_input_port, choose_output_port, main, save_json_report
+from ko2_daw.app import (
+    build_sysex_probe_frame,
+    choose_input_port,
+    choose_output_port,
+    main,
+    save_json_report,
+)
 from ko2_daw.capabilities import CapabilityFinding, DeviceProbeReport, ProbeObservation
-from ko2_daw.config import AppSettings, DAWConfig, DeviceSafetyConfig, load_app_settings, save_app_settings
+from ko2_daw.config import (
+    AppSettings,
+    DAWConfig,
+    DeviceSafetyConfig,
+    load_app_settings,
+    save_app_settings,
+)
 from ko2_daw.controller import DAWController
 from ko2_daw.diagnostics import readiness_report
 from ko2_daw.gui import PAD_NOTES
-from ko2_daw.midi import DryRunMidiBackend, MidiMessage, MidoMidiBackend, _from_winmm_short_message, _to_winmm_short_message, _usb_class_from_ids
+from ko2_daw.midi import (
+    DryRunMidiBackend,
+    MidiMessage,
+    MidoMidiBackend,
+    _from_winmm_short_message,
+    _to_winmm_short_message,
+    _usb_class_from_ids,
+)
 from ko2_daw.project_store import ProjectSnapshot, SafeProjectStore
 from ko2_daw.routing import KO2Route, resolve_ko2_route
 from ko2_daw.samples import SampleLibrary, read_wav_metadata
@@ -70,7 +89,9 @@ class DAWControllerTests(unittest.TestCase):
     def test_live_output_requires_allow_list_match(self):
         backend = DryRunMidiBackend(output_ports=["Untrusted Port"])
         controller = DAWController(
-            config=DAWConfig(safety=DeviceSafetyConfig(dry_run=False, allowed_output_ports=("KO II",))),
+            config=DAWConfig(
+                safety=DeviceSafetyConfig(dry_run=False, allowed_output_ports=("KO II",))
+            ),
             backend=backend,
             output_port="Untrusted Port",
         )
@@ -96,22 +117,35 @@ class DAWControllerTests(unittest.TestCase):
     def test_step_sequencer_sends_note_on_and_off(self):
         backend = DryRunMidiBackend()
         controller = DAWController(backend=backend)
-        sequencer = StepSequencer(controller, [StepEvent(beat=0, note=36), StepEvent(beat=0.5, note=38)])
+        sequencer = StepSequencer(
+            controller, [StepEvent(beat=0, note=36), StepEvent(beat=0.5, note=38)]
+        )
 
         sent = sequencer.render_once()
 
         self.assertEqual(sent, 4)
-        self.assertEqual([message.kind for _, message in backend.sent], ["note_on", "note_off", "note_on", "note_off"])
+        self.assertEqual(
+            [message.kind for _, message in backend.sent],
+            ["note_on", "note_off", "note_on", "note_off"],
+        )
 
     def test_winmm_short_message_packing(self):
-        self.assertEqual(_to_winmm_short_message(MidiMessage.note_on(60, velocity=96, channel=0)), 0x603C90)
-        self.assertEqual(_to_winmm_short_message(MidiMessage.note_off(60, velocity=0, channel=0)), 0x003C80)
+        self.assertEqual(
+            _to_winmm_short_message(MidiMessage.note_on(60, velocity=96, channel=0)), 0x603C90
+        )
+        self.assertEqual(
+            _to_winmm_short_message(MidiMessage.note_off(60, velocity=0, channel=0)), 0x003C80
+        )
         self.assertEqual(_to_winmm_short_message(MidiMessage.clock()), 0xF8)
         self.assertEqual(_to_winmm_short_message(MidiMessage.continue_()), 0xFB)
 
     def test_winmm_short_message_parsing(self):
-        self.assertEqual(_from_winmm_short_message(0x603C90), MidiMessage.note_on(60, velocity=96, channel=0))
-        self.assertEqual(_from_winmm_short_message(0x003C80), MidiMessage.note_off(60, velocity=0, channel=0))
+        self.assertEqual(
+            _from_winmm_short_message(0x603C90), MidiMessage.note_on(60, velocity=96, channel=0)
+        )
+        self.assertEqual(
+            _from_winmm_short_message(0x003C80), MidiMessage.note_off(60, velocity=0, channel=0)
+        )
         self.assertEqual(_from_winmm_short_message(0xF8), MidiMessage.clock())
 
     def test_usb_class_detection_distinguishes_audio_and_midi(self):
@@ -273,7 +307,9 @@ class AppUsabilityTests(unittest.TestCase):
         stream = io.StringIO()
 
         with contextlib.redirect_stdout(stream):
-            self.assertEqual(main(["--cc", "1", "64", "--program", "2", "--bank-msb", "0", "--bank-lsb", "1"]), 0)
+            self.assertEqual(
+                main(["--cc", "1", "64", "--program", "2", "--bank-msb", "0", "--bank-lsb", "1"]), 0
+            )
 
         output = stream.getvalue()
         self.assertIn("control_change channel=0 control=1 value=64", output)
@@ -375,7 +411,9 @@ class AppUsabilityTests(unittest.TestCase):
                 "input_ports": ["EP-133"],
                 "output_ports": ["EP-133"],
             },
-            observations=[ProbeObservation("identity", received=["TE identity TE032AS001"], result="ok")],
+            observations=[
+                ProbeObservation("identity", received=["TE identity TE032AS001"], result="ok")
+            ],
             findings=[
                 CapabilityFinding(
                     "Transport",
@@ -418,7 +456,9 @@ class TESysexTests(unittest.TestCase):
         self.assertEqual(identity["sku"], "TE032AS001")
 
     def test_file_payload_helpers_and_write_block(self):
-        self.assertEqual(build_file_init_payload()[:2], bytes([TEFileCommand.INIT, TEFileCommand.INIT_SUBSCRIBE]))
+        self.assertEqual(
+            build_file_init_payload()[:2], bytes([TEFileCommand.INIT, TEFileCommand.INIT_SUBSCRIBE])
+        )
         self.assertEqual(build_file_list_payload(0, 0), bytes([TEFileCommand.LIST, 0, 0, 0, 0]))
         self.assertEqual(
             build_file_playback_payload(1, TEFileCommand.PLAYBACK_START),
@@ -434,11 +474,15 @@ class TESysexTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             build_te_frame(TEFileCommand.COMMAND, bytes([TEFileCommand.DELETE, 0, 0]))
         self.assertIsInstance(
-            build_te_frame(TEFileCommand.COMMAND, build_file_playback_payload(1, TEFileCommand.PLAYBACK_STOP)),
+            build_te_frame(
+                TEFileCommand.COMMAND, build_file_playback_payload(1, TEFileCommand.PLAYBACK_STOP)
+            ),
             bytes,
         )
         with self.assertRaises(PermissionError):
-            build_te_frame(TEFileCommand.COMMAND, bytes([TEFileCommand.PLAYBACK, TEFileCommand.PLAYBACK_START]))
+            build_te_frame(
+                TEFileCommand.COMMAND, bytes([TEFileCommand.PLAYBACK, TEFileCommand.PLAYBACK_START])
+            )
         with self.assertRaises(ValueError):
             build_file_playback_payload(1, 99)
 

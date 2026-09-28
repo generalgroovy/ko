@@ -107,8 +107,7 @@ def test_project_comparison_reports_pad_and_bounded_binary_changes() -> None:
     assert comparison.pad_changes[0].after_sound_id == 35
     assert changes["patterns/a01"].changed_byte_count == 2
     assert [
-        (item.start_offset, item.end_offset)
-        for item in changes["patterns/a01"].changed_ranges
+        (item.start_offset, item.end_offset) for item in changes["patterns/a01"].changed_ranges
     ] == [(1, 2), (3, 4)]
     assert changes["scenes"].status == "added"
     assert changes["settings"].status == "removed"

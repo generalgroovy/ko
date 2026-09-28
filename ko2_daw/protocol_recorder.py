@@ -7,11 +7,11 @@ regression tests.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
+from collections.abc import Callable, Iterable
+from dataclasses import dataclass
 from pathlib import Path
 from time import monotonic
-from typing import Any, Callable, Iterable
 
 from ko2_daw.io_utils import atomic_write_text
 from ko2_daw.midi import MidiMessage
@@ -37,9 +37,10 @@ class ProtocolEvent:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, object]) -> "ProtocolEvent":
+    def from_dict(cls, data: dict[str, object]) -> ProtocolEvent:
         message = data.get("message")
         if not isinstance(message, dict):
+            # ruff: ignore[TRY004] Invalid serialized data preserves the public ValueError contract.
             raise ValueError("protocol event message must be an object")
         return cls(
             elapsed_sec=float(data.get("elapsed_sec", 0.0)),
@@ -57,8 +58,12 @@ class ProtocolRecorder:
         self.started_at = monotonic()
         self.events: list[ProtocolEvent] = []
 
-    def record(self, direction: str, message: MidiMessage | dict[str, object], raw: str = "") -> None:
-        payload = midi_message_to_dict(message) if isinstance(message, MidiMessage) else dict(message)
+    def record(
+        self, direction: str, message: MidiMessage | dict[str, object], raw: str = ""
+    ) -> None:
+        payload = (
+            midi_message_to_dict(message) if isinstance(message, MidiMessage) else dict(message)
+        )
         self.events.append(
             ProtocolEvent(
                 elapsed_sec=round(monotonic() - self.started_at, 6),
@@ -70,7 +75,9 @@ class ProtocolRecorder:
         )
 
     def to_jsonl(self) -> str:
-        return "\n".join(json.dumps(event.to_dict(), sort_keys=True) for event in self.events) + "\n"
+        return (
+            "\n".join(json.dumps(event.to_dict(), sort_keys=True) for event in self.events) + "\n"
+        )
 
     def save(self, path: str | Path) -> Path:
         return atomic_write_text(path, self.to_jsonl())
@@ -83,7 +90,7 @@ class ProtocolReplay:
         self.events = list(events)
 
     @classmethod
-    def load(cls, path: str | Path) -> "ProtocolReplay":
+    def load(cls, path: str | Path) -> ProtocolReplay:
         return cls(load_protocol_jsonl(path))
 
     def replay(self, observer: Callable[[ProtocolEvent, MidiMessage | None], None]) -> int:
@@ -111,7 +118,9 @@ def midi_message_from_dict(data: dict[str, object]) -> MidiMessage | None:
     kind = str(data.get("kind", ""))
     channel = int(data.get("channel") or 0)
     if kind == "note_on":
-        return MidiMessage.note_on(int(data.get("note") or 0), int(data.get("velocity") or 0), channel=channel)
+        return MidiMessage.note_on(
+            int(data.get("note") or 0), int(data.get("velocity") or 0), channel=channel
+        )
     if kind == "note_off":
         return MidiMessage.note_off(
             int(data.get("note") or 0),
@@ -119,7 +128,9 @@ def midi_message_from_dict(data: dict[str, object]) -> MidiMessage | None:
             channel=channel,
         )
     if kind == "control_change":
-        return MidiMessage.control_change(int(data.get("control") or 0), int(data.get("value") or 0), channel=channel)
+        return MidiMessage.control_change(
+            int(data.get("control") or 0), int(data.get("value") or 0), channel=channel
+        )
     if kind == "program_change":
         return MidiMessage.program_change(int(data.get("program") or 0), channel=channel)
     if kind == "start":
@@ -139,7 +150,9 @@ def midi_message_from_dict(data: dict[str, object]) -> MidiMessage | None:
 
 def load_protocol_jsonl(path: str | Path) -> list[ProtocolEvent]:
     events: list[ProtocolEvent] = []
-    for line_number, line in enumerate(Path(path).read_text(encoding="utf-8").splitlines(), start=1):
+    for line_number, line in enumerate(
+        Path(path).read_text(encoding="utf-8").splitlines(), start=1
+    ):
         if not line.strip():
             continue
         try:
@@ -147,6 +160,7 @@ def load_protocol_jsonl(path: str | Path) -> list[ProtocolEvent]:
         except json.JSONDecodeError as exc:
             raise ValueError(f"invalid JSONL at line {line_number}: {exc}") from exc
         if not isinstance(raw, dict):
+            # ruff: ignore[TRY004] Invalid serialized data preserves the public ValueError contract.
             raise ValueError(f"invalid JSONL at line {line_number}: expected object")
         events.append(ProtocolEvent.from_dict(raw))
     return events

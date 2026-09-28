@@ -8,7 +8,8 @@ mode controls, display, knobs, and transport.
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from ko2_daw.midi import MidiMessage
 
@@ -150,7 +151,9 @@ def apply_photo_layout_patch(gui_module: Any) -> None:
         vol.grid(row=1, column=1, sticky="ew", pady=(0, 8))
 
         for row, group in enumerate(GROUPS, start=2):
-            button = _button(tk, left, group, lambda value=group: self._photo_group(value), pale=True)
+            button = _button(
+                tk, left, group, lambda value=group: self._photo_group(value), pale=True
+            )
             button.grid(row=row, column=1, sticky="nsew", pady=4)
             self.photo_group_buttons[group] = button
             self.photo_buttons[f"group_{group.lower()}"] = button
@@ -214,7 +217,13 @@ def apply_photo_layout_patch(gui_module: Any) -> None:
         )
         for column, (key, label, command, color) in enumerate(controls):
             transport.columnconfigure(column, weight=1)
-            button = _button(tk, transport, label, lambda k=key, cmd=command: self._photo_transport(k, cmd), bg=color)
+            button = _button(
+                tk,
+                transport,
+                label,
+                lambda k=key, cmd=command: self._photo_transport(k, cmd),
+                bg=color,
+            )
             button.grid(row=0, column=column, sticky="ew", padx=4)
             self.photo_buttons[key] = button
 
@@ -313,7 +322,9 @@ def apply_photo_layout_patch(gui_module: Any) -> None:
             self.song_timeline.select_track(group)
         if hasattr(self, "segment_bank"):
             self.segment_bank.select(group, self.segment_bank.selected_segment)
-        self._send_midi(MidiMessage.program_change(GROUP_PROGRAMS[group], channel=self.config.midi_channel))
+        self._send_midi(
+            MidiMessage.program_change(GROUP_PROGRAMS[group], channel=self.config.midi_channel)
+        )
         self._photo_mark(f"group_{group.lower()}", "app")
         self._set_action(f"group {group}")
 
@@ -327,7 +338,9 @@ def apply_photo_layout_patch(gui_module: Any) -> None:
         if hasattr(self, "segment_bank"):
             self.segment_bank.select(group, min(index + 1, 99))
             step = int(self.runtime_state.clock_ticks % 64)
-            self.segment_bank.selected_slot.mark_hit(step, f"{group}{index + 1}", evidence="app pad")
+            self.segment_bank.selected_slot.mark_hit(
+                step, f"{group}{index + 1}", evidence="app pad"
+            )
         self.photo_active_notes[note] = 2
         self._photo_mark(f"pad_{label}", "app")
         self._set_action(f"{group}:{label}")
@@ -338,7 +351,9 @@ def apply_photo_layout_patch(gui_module: Any) -> None:
 
     def _photo_cc(self, key: str, control: int, value) -> None:
         midi_value = int(float(value))
-        self._send_midi(MidiMessage.control_change(control, midi_value, channel=self.config.midi_channel))
+        self._send_midi(
+            MidiMessage.control_change(control, midi_value, channel=self.config.midi_channel)
+        )
         self._photo_mark(key, "app")
         self._set_action(f"{key} {midi_value}")
 
@@ -413,7 +428,9 @@ def apply_photo_layout_patch(gui_module: Any) -> None:
         selected_group = self.group.get()
         mode = getattr(self, "device_mode", getattr(self, "photo_mode", "main"))
         for group, button in self.photo_group_buttons.items():
-            button.configure(bg=PhotoPalette.active if group == selected_group else PhotoPalette.group)
+            button.configure(
+                bg=PhotoPalette.active if group == selected_group else PhotoPalette.group
+            )
         for index, button in self.photo_pad_buttons.items():
             note = NOTES_BY_GROUP[selected_group][index]
             active = note in self.photo_active_notes
@@ -423,11 +440,9 @@ def apply_photo_layout_patch(gui_module: Any) -> None:
                 relief="sunken" if active else "flat",
             )
         for key, button in self.photo_buttons.items():
-            if key.startswith("group_") or key.startswith("pad_"):
+            if key.startswith(("group_", "pad_")):
                 continue
-            if key == mode:
-                button.configure(bg=PhotoPalette.active, fg=PhotoPalette.black)
-            elif key == "shift" and getattr(self, "device_shift", False):
+            if key == mode or key == "shift" and getattr(self, "device_shift", False):
                 button.configure(bg=PhotoPalette.active, fg=PhotoPalette.black)
         if hasattr(self, "photo_display"):
             clock = int(getattr(self.runtime_state, "clock_ticks", 0))
@@ -468,7 +483,11 @@ def _button(
     small: bool = False,
 ):
     background = bg or (PhotoPalette.white if pale else PhotoPalette.black)
-    foreground = PhotoPalette.black if background in {PhotoPalette.white, PhotoPalette.orange} else PhotoPalette.black_text
+    foreground = (
+        PhotoPalette.black
+        if background in {PhotoPalette.white, PhotoPalette.orange}
+        else PhotoPalette.black_text
+    )
     return tk.Button(
         parent,
         text=label,

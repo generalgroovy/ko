@@ -1,6 +1,11 @@
 """Tests for A-D x 99 segment occupancy model."""
 
-from ko2_daw.group_segments import SegmentBank, extract_segment_id, note_to_group_segment, program_to_group
+from ko2_daw.group_segments import (
+    SegmentBank,
+    extract_segment_id,
+    note_to_group_segment,
+    program_to_group,
+)
 
 
 def test_extract_segment_id_variants() -> None:

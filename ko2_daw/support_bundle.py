@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime
-from pathlib import Path
 import platform
 import zipfile
+from datetime import datetime
+from pathlib import Path
 
 from ko2_daw.config import load_app_settings
 from ko2_daw.diagnostics import readiness_report
@@ -25,7 +25,7 @@ def create_support_bundle(
 
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now().astimezone().strftime("%Y%m%d_%H%M%S")
     bundle_path = out_dir / f"support_bundle_{timestamp}.zip"
 
     report = midi_capability_report()
@@ -34,11 +34,15 @@ def create_support_bundle(
         preferred = settings.preferred_route if settings.preferred_route != "manual" else "auto"
         route = resolve_ko2_route(report, preferred)
         route_payload = route.__dict__
-    except Exception as exc:  # defensive: support bundle should not fail on route errors
+    except (
+        # ruff: ignore[BLE001] Always produce a support bundle including route failure details.
+        Exception
+    ) as exc:
         route_payload = {"error": str(exc)}
 
     payloads: dict[str, object] = {
         "manifest.json": {
+            # ruff: ignore[DTZ005] Preserve the existing local timestamp schema.
             "created_at": datetime.now().isoformat(timespec="seconds"),
             "app": "ko2-daw",
             "python": platform.python_version(),

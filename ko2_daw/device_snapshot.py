@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
 import hashlib
 import json
-from pathlib import Path
 import threading
 import time
-from typing import Callable
+from collections.abc import Callable
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Self
 
 from ko2_daw.config import DAWConfig, DeviceSafetyConfig
 from ko2_daw.controller import DAWController
@@ -28,7 +29,6 @@ from ko2_daw.te_sysex import (
     build_te_frame,
     build_universal_identity_request,
 )
-
 
 SnapshotExchange = Callable[[bytes, float], list[SysexDecodedResponse]]
 
@@ -127,7 +127,9 @@ class DeviceSnapshot:
 class ReadOnlySysexSession:
     """Persistent WinMM input/output session for sequential read-only probes."""
 
-    def __init__(self, input_port: str, output_port: str, *, max_sysex_bytes: int = 4 * 1024 * 1024):
+    def __init__(
+        self, input_port: str, output_port: str, *, max_sysex_bytes: int = 4 * 1024 * 1024
+    ):
         self.input_port = input_port
         self.output_port = output_port
         self._responses: list[bytes] = []
@@ -197,7 +199,7 @@ class ReadOnlySysexSession:
             self._started = False
         self._backend.close()
 
-    def __enter__(self) -> "ReadOnlySysexSession":
+    def __enter__(self) -> Self:
         self.start()
         return self
 
@@ -318,7 +320,9 @@ def _capture_file_tree(
                 for entry in entries
             )
             if signature in page_signatures:
-                snapshot.warnings.append(f"Repeated page detected at node {node_id}, page {page}; scan stopped for this node.")
+                snapshot.warnings.append(
+                    f"Repeated page detected at node {node_id}, page {page}; scan stopped for this node."
+                )
                 break
             page_signatures.add(signature)
 

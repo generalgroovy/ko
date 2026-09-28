@@ -143,9 +143,12 @@ def apply_comm_panel_patch(gui_module: Any) -> None:
         return applied
 
     def _save_comm_panel(self) -> None:
-        if getattr(self, "comm_window", None) and self.comm_window.winfo_exists():
-            if not self._apply_comm_panel():
-                return
+        if (
+            getattr(self, "comm_window", None)
+            and self.comm_window.winfo_exists()
+            and not self._apply_comm_panel()
+        ):
+            return
         path = save_app_settings(self.settings_path, self.app_settings)
         self._record_comm_event("saved")
         self._set_action(f"communication settings saved: {path.name}")

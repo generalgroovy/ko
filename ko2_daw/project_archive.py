@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
 import hashlib
 import io
 import re
 import tarfile
 import zlib
-
+from dataclasses import asdict, dataclass
 
 PAD_PATH = re.compile(r"^pads/([A-Da-d])/p(\d{1,2})$")
 PATTERN_PATH = re.compile(r"^patterns/([A-Da-d])(\d{2})$")
@@ -65,16 +64,12 @@ class ProjectArchiveInfo:
         return sum(item.kind == "pattern" for item in self.binary_records)
 
     def to_dict(self) -> dict[str, object]:
-        assignments = [
-            asdict(item) | {"assigned": item.assigned} for item in self.assignments
-        ]
+        assignments = [asdict(item) | {"assigned": item.assigned} for item in self.assignments]
         binary_records = [asdict(item) for item in self.binary_records]
         groups = ("A", "B", "C", "D")
         group_summary = {}
         for group in groups:
-            group_assignments = [
-                item for item in self.assignments if item.group == group
-            ]
+            group_assignments = [item for item in self.assignments if item.group == group]
             assigned = [item for item in group_assignments if item.assigned]
             group_summary[group] = {
                 "assigned_pad_count": len(assigned),
@@ -87,17 +82,11 @@ class ProjectArchiveInfo:
         record_count_by_kind: dict[str, int] = {}
         bytes_by_kind: dict[str, int] = {}
         for item in self.binary_records:
-            record_count_by_kind[item.kind] = (
-                record_count_by_kind.get(item.kind, 0) + 1
-            )
+            record_count_by_kind[item.kind] = record_count_by_kind.get(item.kind, 0) + 1
             bytes_by_kind[item.kind] = bytes_by_kind.get(item.kind, 0) + item.byte_count
         required_records = {"scenes", "settings"}
         present_paths = {item.path for item in self.binary_records}
-        coverage = (
-            self.assigned_pad_count / len(self.assignments)
-            if self.assignments
-            else 0.0
-        )
+        coverage = self.assigned_pad_count / len(self.assignments) if self.assignments else 0.0
         return {
             "schema": "ko2-daw.ep133-project-analysis.v2",
             "sha256": self.sha256,
@@ -116,9 +105,7 @@ class ProjectArchiveInfo:
                 "pads": {
                     "total_pad_records": len(self.assignments),
                     "assigned_pad_count": self.assigned_pad_count,
-                    "unassigned_pad_count": (
-                        len(self.assignments) - self.assigned_pad_count
-                    ),
+                    "unassigned_pad_count": (len(self.assignments) - self.assigned_pad_count),
                     "assignment_coverage_percent": round(coverage * 100.0, 2),
                     "groups": group_summary,
                 },
@@ -130,8 +117,7 @@ class ProjectArchiveInfo:
                     "required_records_present": sorted(required_records & present_paths),
                     "required_records_missing": sorted(required_records - present_paths),
                     "opaque_record_count": sum(
-                        item.kind
-                        in {"unknown", "pattern", "scenes", "settings", "fx_settings"}
+                        item.kind in {"unknown", "pattern", "scenes", "settings", "fx_settings"}
                         for item in self.binary_records
                     ),
                 },
@@ -207,9 +193,7 @@ class ProjectArchiveComparison:
             "binary_changes": [
                 {
                     **asdict(item),
-                    "changed_ranges": [
-                        asdict(byte_range) for byte_range in item.changed_ranges
-                    ],
+                    "changed_ranges": [asdict(byte_range) for byte_range in item.changed_ranges],
                 }
                 for item in self.binary_changes
             ],
@@ -267,12 +251,8 @@ def compare_project_archives(
     before_info = _build_archive_info(before, before_members, before_dirs)
     after_info = _build_archive_info(after, after_members, after_dirs)
 
-    before_pads = {
-        (item.group, item.pad): item.sound_id for item in before_info.assignments
-    }
-    after_pads = {
-        (item.group, item.pad): item.sound_id for item in after_info.assignments
-    }
+    before_pads = {(item.group, item.pad): item.sound_id for item in before_info.assignments}
+    after_pads = {(item.group, item.pad): item.sound_id for item in after_info.assignments}
     pad_changes = tuple(
         ProjectPadChange(
             group=group,
@@ -290,9 +270,7 @@ def compare_project_archives(
         if PAD_PATH.fullmatch(path) is None
     }
     after_binary = {
-        path: payload
-        for path, payload in after_members.items()
-        if PAD_PATH.fullmatch(path) is None
+        path: payload for path, payload in after_members.items() if PAD_PATH.fullmatch(path) is None
     }
     binary_changes: list[ProjectBinaryChange] = []
     for path in sorted(before_binary.keys() | after_binary.keys()):
@@ -311,21 +289,15 @@ def compare_project_archives(
                 status=(
                     "added"
                     if before_payload is None
-                    else "removed"
-                    if after_payload is None
-                    else "changed"
+                    else "removed" if after_payload is None else "changed"
                 ),
                 before_byte_count=len(before_payload or b""),
                 after_byte_count=len(after_payload or b""),
                 before_sha256=(
-                    hashlib.sha256(before_payload).hexdigest()
-                    if before_payload is not None
-                    else ""
+                    hashlib.sha256(before_payload).hexdigest() if before_payload is not None else ""
                 ),
                 after_sha256=(
-                    hashlib.sha256(after_payload).hexdigest()
-                    if after_payload is not None
-                    else ""
+                    hashlib.sha256(after_payload).hexdigest() if after_payload is not None else ""
                 ),
                 changed_byte_count=changed_count,
                 changed_ranges=ranges,
@@ -344,11 +316,7 @@ def compare_project_archives(
 def validate_ep133_project_structure(info: ProjectArchiveInfo) -> None:
     """Require the structural records shared by every captured EP-133 project."""
 
-    expected_pads = {
-        (group, pad)
-        for group in ("A", "B", "C", "D")
-        for pad in range(1, 13)
-    }
+    expected_pads = {(group, pad) for group in ("A", "B", "C", "D") for pad in range(1, 13)}
     actual_pads = {(item.group, item.pad) for item in info.assignments}
     if actual_pads != expected_pads:
         missing = sorted(expected_pads - actual_pads)
@@ -361,8 +329,7 @@ def validate_ep133_project_structure(info: ProjectArchiveInfo) -> None:
     missing_records = sorted({"scenes", "settings"} - binary_paths)
     if missing_records:
         raise ValueError(
-            "EP-133 project archive is missing required records: "
-            + ", ".join(missing_records)
+            "EP-133 project archive is missing required records: " + ", ".join(missing_records)
         )
 
 
@@ -376,6 +343,7 @@ def _read_project_archive(
     if len(data) < 512:
         raise ValueError("EP-133 project archive is too small to be a TAR file.")
     try:
+        # ruff: ignore[SIM115] Managed by with archive below; only open errors are translated.
         archive = tarfile.open(fileobj=io.BytesIO(data), mode="r:")
     except (tarfile.TarError, OSError) as exc:
         raise ValueError(f"Invalid EP-133 project TAR: {exc}") from exc
@@ -386,9 +354,7 @@ def _read_project_archive(
     with archive:
         members = archive.getmembers()
         if len(members) > max_members:
-            raise ValueError(
-                f"Project archive has {len(members)} members; limit is {max_members}."
-            )
+            raise ValueError(f"Project archive has {len(members)} members; limit is {max_members}.")
         seen: set[str] = set()
         for member in members:
             path = _safe_member_path(member.name)
@@ -401,9 +367,7 @@ def _read_project_archive(
                 directory_count += 1
                 continue
             if not member.isfile():
-                raise ValueError(
-                    f"Project archive contains unsupported member type: {path}"
-                )
+                raise ValueError(f"Project archive contains unsupported member type: {path}")
             if member.size < 0 or member.size > max_member_bytes:
                 raise ValueError(
                     f"Project archive member {path!r} is {member.size} bytes; "
@@ -411,9 +375,7 @@ def _read_project_archive(
                 )
             total_bytes += member.size
             if total_bytes > max_total_bytes:
-                raise ValueError(
-                    f"Project archive file payload exceeds {max_total_bytes} bytes."
-                )
+                raise ValueError(f"Project archive file payload exceeds {max_total_bytes} bytes.")
             handle = archive.extractfile(member)
             if handle is None:
                 raise ValueError(f"Could not read project archive member: {path}")
@@ -438,13 +400,9 @@ def _build_archive_info(
         if pad_match is not None:
             pad = int(pad_match.group(2))
             if not 1 <= pad <= 12:
-                raise ValueError(
-                    f"Project archive pad number is outside 1-12: {path}"
-                )
+                raise ValueError(f"Project archive pad number is outside 1-12: {path}")
             if len(payload) < 3:
-                raise ValueError(
-                    f"Project pad member is shorter than 3 bytes: {path}"
-                )
+                raise ValueError(f"Project pad member is shorter than 3 bytes: {path}")
             assignments.append(
                 ProjectPadAssignment(
                     group=pad_match.group(1).upper(),
@@ -512,11 +470,7 @@ def _changed_byte_ranges(
     truncated = False
 
     for offset in range(length):
-        changed = (
-            offset >= len(before)
-            or offset >= len(after)
-            or before[offset] != after[offset]
-        )
+        changed = offset >= len(before) or offset >= len(after) or before[offset] != after[offset]
         if changed:
             changed_count += 1
             if range_start is None:

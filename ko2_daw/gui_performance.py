@@ -24,7 +24,6 @@ def apply_performance_patch(gui_module: Any) -> None:
     original_build_menu = app_class._build_menu
     original_send_midi = app_class._send_midi
     original_queue_midi_input = app_class._queue_midi_input
-    original_record = app_class._record
     original_stop = app_class._stop
     original_close = app_class._close
 
@@ -43,7 +42,9 @@ def apply_performance_patch(gui_module: Any) -> None:
         menu = self.root.nametowidget(self.root.cget("menu"))
         daw_menu = tk.Menu(menu, tearoff=False)
         daw_menu.add_command(label="Performance Recorder", command=self._show_performance_window)
-        daw_menu.add_command(label="Record New Clip", command=lambda: self._performance_start(False))
+        daw_menu.add_command(
+            label="Record New Clip", command=lambda: self._performance_start(False)
+        )
         daw_menu.add_command(label="Overdub Clip", command=lambda: self._performance_start(True))
         daw_menu.add_command(label="Stop Recording / Playback", command=self._performance_stop)
         menu.add_cascade(label="DAW", menu=daw_menu)
@@ -80,7 +81,9 @@ def apply_performance_patch(gui_module: Any) -> None:
         win.configure(bg="#171915")
         self.performance_window = win
         self.performance_name = tk.StringVar(value=self.performance_recorder.clip.name)
-        self.performance_loop_beats = tk.StringVar(value=str(self.performance_recorder.clip.loop_beats))
+        self.performance_loop_beats = tk.StringVar(
+            value=str(self.performance_recorder.clip.loop_beats)
+        )
         self.performance_grid = tk.StringVar(value="1/16")
         self.performance_strength = tk.DoubleVar(value=100)
         self.performance_loop = tk.BooleanVar(value=True)
@@ -105,9 +108,13 @@ def apply_performance_patch(gui_module: Any) -> None:
         controls = tk.Frame(win, bg="#d8d4c8", padx=8, pady=8)
         controls.pack(fill=tk.X, padx=10)
         tk.Label(controls, text="Clip", bg="#d8d4c8").grid(row=0, column=0, sticky="w")
-        tk.Entry(controls, textvariable=self.performance_name, width=24).grid(row=0, column=1, sticky="ew", padx=(4, 10))
+        tk.Entry(controls, textvariable=self.performance_name, width=24).grid(
+            row=0, column=1, sticky="ew", padx=(4, 10)
+        )
         tk.Label(controls, text="Loop beats", bg="#d8d4c8").grid(row=0, column=2, sticky="w")
-        tk.Entry(controls, textvariable=self.performance_loop_beats, width=8).grid(row=0, column=3, padx=(4, 10))
+        tk.Entry(controls, textvariable=self.performance_loop_beats, width=8).grid(
+            row=0, column=3, padx=(4, 10)
+        )
         tk.Label(controls, text="Grid", bg="#d8d4c8").grid(row=0, column=4, sticky="w")
         ttk.Combobox(
             controls,
@@ -116,12 +123,14 @@ def apply_performance_patch(gui_module: Any) -> None:
             state="readonly",
             width=7,
         ).grid(row=0, column=5, padx=(4, 10))
-        tk.Checkbutton(controls, text="Loop playback", variable=self.performance_loop, bg="#d8d4c8").grid(
-            row=0, column=6, sticky="w"
-        )
+        tk.Checkbutton(
+            controls, text="Loop playback", variable=self.performance_loop, bg="#d8d4c8"
+        ).grid(row=0, column=6, sticky="w")
         controls.columnconfigure(1, weight=1)
 
-        tk.Label(controls, text="Quantize strength", bg="#d8d4c8").grid(row=1, column=0, sticky="w", pady=(6, 0))
+        tk.Label(controls, text="Quantize strength", bg="#d8d4c8").grid(
+            row=1, column=0, sticky="w", pady=(6, 0)
+        )
         tk.Scale(
             controls,
             variable=self.performance_strength,
@@ -166,7 +175,9 @@ def apply_performance_patch(gui_module: Any) -> None:
 
     def _performance_apply_fields(self) -> bool:
         try:
-            self.performance_recorder.clip.name = self.performance_name.get().strip() or "EP-133 Performance"
+            self.performance_recorder.clip.name = (
+                self.performance_name.get().strip() or "EP-133 Performance"
+            )
             self.performance_recorder.clip.bpm = float(self.bpm.get())
             self.performance_recorder.set_loop_beats(float(self.performance_loop_beats.get()))
             return True
@@ -218,13 +229,20 @@ def apply_performance_patch(gui_module: Any) -> None:
             return
         events = self.performance_recorder.playback_events()
         elapsed = monotonic() - self.performance_play_started
-        while self.performance_play_index < len(events) and events[self.performance_play_index][0] <= elapsed:
+        while (
+            self.performance_play_index < len(events)
+            and events[self.performance_play_index][0] <= elapsed
+        ):
             _, message = events[self.performance_play_index]
             self._send_midi(message)
             _track_active_note(self.performance_active_notes, message)
             self.performance_play_index += 1
         if self.performance_play_index >= len(events):
-            loop_seconds = self.performance_recorder.clip.loop_beats * 60.0 / self.performance_recorder.clip.bpm
+            loop_seconds = (
+                self.performance_recorder.clip.loop_beats
+                * 60.0
+                / self.performance_recorder.clip.bpm
+            )
             if self.performance_loop.get() and loop_seconds > 0:
                 if elapsed >= loop_seconds:
                     self.performance_play_index = 0
@@ -265,7 +283,9 @@ def apply_performance_patch(gui_module: Any) -> None:
             self._refresh_performance_view()
 
     def _performance_clear(self) -> None:
-        if not messagebox.askyesno("KO II Performance", "Clear the current in-memory performance clip?"):
+        if not messagebox.askyesno(
+            "KO II Performance", "Clear the current in-memory performance clip?"
+        ):
             return
         self.performance_recorder.clear()
         self.performance_status.set("clip cleared")
@@ -326,7 +346,9 @@ def apply_performance_patch(gui_module: Any) -> None:
             return
         for item in tree.get_children():
             tree.delete(item)
-        for index, event in enumerate(sorted(self.performance_recorder.clip.events, key=lambda item: item.beat)):
+        for index, event in enumerate(
+            sorted(self.performance_recorder.clip.events, key=lambda item: item.beat)
+        ):
             message = event.message
             details = " ".join(
                 f"{key}={value}"
@@ -341,7 +363,9 @@ def apply_performance_patch(gui_module: Any) -> None:
             )
         if self.performance_recorder.recording:
             mode = "overdub" if self.performance_recorder.overdub else "recording"
-            self.performance_status.set(f"{mode} | {len(self.performance_recorder.clip.events)} events")
+            self.performance_status.set(
+                f"{mode} | {len(self.performance_recorder.clip.events)} events"
+            )
 
     def _close(self) -> None:
         self._performance_stop_playback()
