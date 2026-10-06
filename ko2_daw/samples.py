@@ -43,6 +43,15 @@ class SampleLibrary:
         self.add(sample)
         return sample
 
+    def add_wavs(self, paths: list[Path]) -> list[LocalSample]:
+        """Validate a complete copy batch before adding any rows to the library."""
+        free = [slot for slot in range(MAX_SAMPLE_SLOTS) if slot not in self.samples]
+        if len(paths) > len(free):
+            raise ValueError("Not enough free sample slots. The saved WAVs remain on disk.")
+        imported = [read_wav_metadata(path, slot) for path, slot in zip(paths, free)]
+        self.samples.update({sample.slot: sample for sample in imported})
+        return imported
+
     def add(self, sample: LocalSample) -> None:
         _validate_slot(sample.slot)
         self.samples[sample.slot] = sample

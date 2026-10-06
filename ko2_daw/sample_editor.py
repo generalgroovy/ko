@@ -10,36 +10,58 @@ from collections.abc import Callable
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
-from ko2_daw.sample_edit import trim_copy, waveform
+from ko2_daw.sample_edit import (
+    selection_frames,
+    slice_boundaries,
+    slice_copies,
+    trim_copy,
+    waveform,
+)
 
 
 class SampleEditor(tk.Toplevel):
     """Inspect audio, select a region with clicks or seconds, and export a new WAV."""
 
-    def __init__(self, parent: tk.Misc, path: str, on_saved: Callable[[Path], None]):
+    def __init__(self, parent: tk.Misc, path: str, on_saved: Callable[[list[Path]], None]):
         super().__init__(parent)
-        self.title("Trim sample copy")
-        self.geometry("680x340")
-        self.minsize(420, 320)
+        self.title("Trim & slice copies")
+        self.geometry("680x390")
+        self.minsize(460, 390)
         self.source = Path(path)
         self.on_saved = on_saved
         self.duration = 0.0
         self.peaks: list[tuple[float, float]] = []
         self.results: queue.Queue = queue.Queue()
         self.saving = False
+        self.reading = True
+        self.cancel_event = threading.Event()
+        self.rate = 0
+        self.frames = 0
         self.start = tk.StringVar(value="0")
         self.end = tk.StringVar(value="0")
         self.edge = tk.StringVar(value="start")
+        self.copies = tk.StringVar(value="One copy")
+        self.selection = tk.StringVar(value="")
         self.status = tk.StringVar(value="Reading waveform…")
         self.protocol("WM_DELETE_WINDOW", self._close)
         frame = ttk.Frame(self, padding=14)
         frame.pack(fill="both", expand=True)
         ttk.Label(frame, text=self.source.name, font=("Segoe UI", 11, "bold")).pack(anchor="w")
-        self.canvas = tk.Canvas(frame, height=130, background="#171c21", highlightthickness=0)
+        self.canvas = tk.Canvas(
+            frame,
+            height=130,
+            background="#171c21",
+            highlightthickness=2,
+            highlightbackground="#171c21",
+            highlightcolor="#1f8274",
+            takefocus=True,
+        )
         self.canvas.pack(fill="both", expand=True, pady=8)
         self.canvas.bind("<Configure>", lambda _event: self._draw())
         self.canvas.bind("<Button-1>", self._select)
         self.canvas.bind("<B1-Motion>", self._select)
+        for key in ("Left", "Right", "Home", "End"):
+            self.canvas.bind(f"<{key}>", self._nudge)
         row = ttk.Frame(frame)
         row.pack(fill="x")
         for label, variable, edge in (
@@ -50,17 +72,44 @@ class SampleEditor(tk.Toplevel):
             entry = ttk.Entry(row, textvariable=variable, width=12)
             entry.pack(side="left", padx=(0, 8))
             variable.trace_add("write", lambda *_args: self._draw())
-        ttk.Label(frame, textvariable=self.status, wraplength=620).pack(anchor="w", pady=8)
+        ttk.Label(frame, textvariable=self.selection).pack(anchor="w", pady=(8, 0))
+        export = ttk.Frame(frame)
+        export.pack(fill="x", pady=(8, 0))
+        ttk.Label(export, text="Export").pack(side="left", padx=(0, 8))
+        self.count_box = ttk.Combobox(
+            export,
+            textvariable=self.copies,
+            values=("One copy", "2 slices", "4 slices", "8 slices", "16 slices"),
+            state="readonly",
+            width=12,
+        )
+        self.count_box.pack(side="left")
+        self.copies.trace_add("write", lambda *_args: self._draw())
+        self.status_label = ttk.Label(frame, textvariable=self.status, wraplength=620)
+        self.status_label.pack(anchor="w", pady=8)
+        frame.bind(
+            "<Configure>",
+            lambda event: self.status_label.configure(wraplength=max(100, event.width - 28)),
+        )
         actions = ttk.Frame(frame)
         actions.pack(fill="x")
         self.save_button = ttk.Button(
             actions, text="Save trimmed copy…", command=self._save, state="disabled"
         )
         self.save_button.pack(side="left")
-        ttk.Button(actions, text="Reset", command=self._reset).pack(side="left", padx=8)
+        self.reset_button = ttk.Button(actions, text="Reset", command=self._reset)
+        self.reset_button.pack(side="left", padx=8)
+        self.cancel_button = ttk.Button(actions, text="Cancel", command=self._cancel)
+        self.cancel_button.pack(side="left")
         ttk.Button(actions, text="Info", command=self._info).pack(side="right")
-        self._worker("waveform", lambda: waveform(self.source))
+        self._worker("waveform", self._read)
         self.poll_id = self.after(80, self._poll)
+
+    def _read(self):
+        with wave.open(str(self.source), "rb") as source:
+            rate, frames = source.getframerate(), source.getnframes()
+        duration, peaks = waveform(self.source, cancel=self.cancel_event.is_set)
+        return duration, peaks, rate, frames
 
     def _worker(self, kind: str, operation: Callable) -> None:
         def run() -> None:
@@ -77,32 +126,79 @@ class SampleEditor(tk.Toplevel):
                 kind, value, error = self.results.get_nowait()
                 if kind == "save":
                     self.saving = False
-                    self.save_button.configure(state="normal")
-                if error:
-                    self.status.set(str(error))
-                elif kind == "waveform":
-                    self.duration, self.peaks = value
-                    self._reset()
-                    self.save_button.configure(state="normal")
-                    self.status.set("Choose an edge, then click the waveform or enter seconds.")
                 else:
-                    self.status.set(f"Saved {value.name}")
+                    self.reading = False
+                self.cancel_button.configure(state="disabled")
+                if error:
+                    self.status.set(
+                        "Destination already exists. Choose another location or rename it first."
+                        if isinstance(error, FileExistsError)
+                        else str(error)
+                    )
+                elif kind == "waveform":
+                    self.duration, self.peaks, self.rate, self.frames = value
+                    self._reset()
+                    self.status.set("Choose Start or End, then drag the waveform or enter seconds.")
+                else:
+                    self.status.set(f"Saved {len(value)} copies in {value[0].parent.name}.")
                     self.on_saved(value)
+                self._draw()
         except queue.Empty:
             pass
         self.poll_id = self.after(80, self._poll)
 
     def _reset(self) -> None:
+        if self.saving:
+            return
         self.start.set("0")
         self.end.set(str(self.duration))
+
+    def _count(self) -> int:
+        return 1 if self.copies.get() == "One copy" else int(self.copies.get().split()[0])
+
+    def _region(self) -> tuple[int, int]:
+        return selection_frames(
+            float(self.start.get()), float(self.end.get()), self.rate, self.frames
+        )
+
+    def _nudge(self, event: tk.Event) -> str:
+        if not self.frames or self.saving:
+            return "break"
+        variable = self.start if self.edge.get() == "start" else self.end
+        try:
+            first, last = self._region()
+        except ValueError:
+            return "break"
+        current = first if self.edge.get() == "start" else last
+        step = max(1, round(self.rate / 100)) if event.state & 1 else 1
+        if event.keysym == "Home":
+            current = 0 if self.edge.get() == "start" else first + 1
+        elif event.keysym == "End":
+            current = last - 1 if self.edge.get() == "start" else self.frames
+        else:
+            current += step * (1 if event.keysym == "Right" else -1)
+        current = (
+            max(0, min(last - 1, current))
+            if self.edge.get() == "start"
+            else max(first + 1, min(self.frames, current))
+        )
+        variable.set(str(current / self.rate))
+        return "break"
 
     def _select(self, event: tk.Event) -> None:
         if not self.duration or self.saving:
             return
-        value = min(
-            self.duration, max(0.0, event.x / max(1, self.canvas.winfo_width()) * self.duration)
+        self.canvas.focus_set()
+        frame = max(
+            0, min(self.frames, round(event.x / max(1, self.canvas.winfo_width()) * self.frames))
         )
-        (self.start if self.edge.get() == "start" else self.end).set(f"{value:.6f}")
+        try:
+            first, last = self._region()
+            frame = min(frame, last - 1) if self.edge.get() == "start" else max(frame, first + 1)
+        except ValueError:
+            # A click can also repair a malformed numeric edge.
+            pass
+        (self.start if self.edge.get() == "start" else self.end).set(str(frame / self.rate))
 
     def _draw(self) -> None:
         self.canvas.delete("all")
@@ -110,18 +206,31 @@ class SampleEditor(tk.Toplevel):
             return
         width, height = self.canvas.winfo_width(), self.canvas.winfo_height()
         try:
-            start, end = float(self.start.get()), float(self.end.get())
-            if 0 <= start < end <= self.duration:
+            first, last = self._region()
+            regions = slice_boundaries(first, last, self._count())
+            for index, (start, end) in enumerate(regions):
                 self.canvas.create_rectangle(
-                    start / self.duration * width,
+                    start / self.frames * width,
                     0,
-                    end / self.duration * width,
+                    end / self.frames * width,
                     height,
-                    fill="#284d55",
+                    fill="#284d55" if index % 2 == 0 else "#365469",
                     outline="",
                 )
-        except ValueError:
-            pass
+            self.selection.set(
+                f"{(last - first) / self.rate:.4f} s · {last - first:,} frames · {len(regions)} {'copy' if len(regions) == 1 else 'slices'}"
+            )
+            self.save_button.configure(state="disabled" if self.saving else "normal")
+        except ValueError as exc:
+            self.selection.set(
+                str(exc)
+                if str(exc).startswith(("Choose", "Each", "Start", "The"))
+                else "Enter valid start and end seconds."
+            )
+            self.save_button.configure(state="disabled")
+        self.save_button.configure(text="Save copy…" if self._count() == 1 else "Save slices…")
+        self.count_box.configure(state="disabled" if self.saving else "readonly")
+        self.reset_button.configure(state="disabled" if self.saving else "normal")
         for index, (low, high) in enumerate(self.peaks):
             x = index / len(self.peaks) * width
             self.canvas.create_line(
@@ -129,37 +238,69 @@ class SampleEditor(tk.Toplevel):
             )
 
     def _save(self) -> None:
+        if self.saving or self.reading:
+            return
         try:
-            start, end = float(self.start.get()), float(self.end.get())
-            if not 0 <= start < end <= self.duration:
-                raise ValueError("Choose a start before the end, within the sample duration.")
+            first, last = self._region()
+            count = self._count()
+            slice_boundaries(first, last, count)
+            start, end = first / self.rate, last / self.rate
         except ValueError as exc:
             self.status.set(str(exc))
             return
-        target = filedialog.asksaveasfilename(
-            parent=self,
-            title="Save a new WAV copy",
-            defaultextension=".wav",
-            initialfile=f"{self.source.stem}-trim.wav",
-            filetypes=[("WAV audio", "*.wav")],
-        )
+        if count == 1:
+            target = filedialog.asksaveasfilename(
+                parent=self,
+                title="Save a new WAV copy",
+                defaultextension=".wav",
+                initialfile=f"{self.source.stem}-trim.wav",
+                filetypes=[("WAV audio", "*.wav")],
+            )
+        else:
+            parent = filedialog.askdirectory(
+                parent=self, title="Choose where to create the slice folder"
+            )
+            target = Path(parent) / f"{self.source.stem}-slices" if parent else None
         if not target:
             return
         self.saving = True
-        self.save_button.configure(state="disabled")
-        self.status.set("Saving copy…")
-        self._worker("save", lambda: trim_copy(self.source, target, start, end))
+        self.cancel_event.clear()
+        self._draw()
+        self.cancel_button.configure(state="normal")
+        self.status.set("Saving copies…")
+        self._worker(
+            "save",
+            lambda: (
+                [trim_copy(self.source, target, start, end, cancel=self.cancel_event.is_set)]
+                if count == 1
+                else slice_copies(
+                    self.source, target, start, end, count, cancel=self.cancel_event.is_set
+                )
+            ),
+        )
+
+    def _cancel(self) -> None:
+        if self.saving or self.reading:
+            self.cancel_event.set()
+            self.cancel_button.configure(state="disabled")
+            self.status.set("Cancelling…")
 
     def _info(self) -> None:
         messagebox.showinfo(
             "Local sample editing",
-            "The shaded region is exported as a new PCM WAV and added to your local library. The original is preserved. Existing files cannot be replaced.\n\nChoose Start or End, then click or drag on the waveform; numeric seconds provide a keyboard alternative. All channels and the original sample rate are retained. Nothing is sent to the sampler.",
+            "The shaded region becomes new local PCM WAVs. Save the manifest afterward to keep the library. The original and existing destinations are preserved.\n\nChoose Start or End, then drag or enter seconds. Focus the waveform and use Left/Right for one frame, Shift for 10 ms, Home/End for the available boundary. Reset selects the entire sample.\n\nEqual slices divide the selected frames in order, with no overlap, resampling, fades or zero-crossing shifts. Their lengths differ by at most one frame; boundaries can click. Save slices creates a new <sample>-slices folder inside the folder you choose. If it already exists, rename it or choose another destination.\n\nCancel removes this operation's partial output. Closing during export waits for it to finish or cancel. Nothing is sent to the sampler.",
             parent=self,
         )
 
     def _close(self) -> None:
         if self.saving:
-            self.status.set("Finish saving before closing this editor.")
+            self.status.set("Finish saving or press Cancel before closing.")
             return
+        self.cancel_event.set()
         self.after_cancel(self.poll_id)
         self.destroy()
+
+    def destroy(self) -> None:
+        # The main window may destroy this child directly after its write guard.
+        self.cancel_event.set()
+        super().destroy()

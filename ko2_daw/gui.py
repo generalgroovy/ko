@@ -590,7 +590,7 @@ class KO2DawApp:
             (
                 "TRIM COPY",
                 self._edit_selected_sample,
-                "Select a waveform region and save a new WAV without changing the original.",
+                "Trim a copy or split a region into equal slices. The original stays unchanged.",
             ),
             (
                 "TRIGGER MIDI",
@@ -1425,18 +1425,25 @@ class KO2DawApp:
     def _edit_selected_sample(self) -> None:
         sample = self._selected_sample()
         if sample:
-            SampleEditor(self.root, sample.path, self._add_trimmed_sample)
+            SampleEditor(self.root, sample.path, self._add_sample_copies)
 
     def _add_trimmed_sample(self, path: Path) -> None:
+        self._add_sample_copies([path])
+
+    def _add_sample_copies(self, paths: list[Path]) -> None:
         try:
-            sample = self.sample_library.add_wav(path)
-        except (OSError, ValueError, wave.Error) as exc:
-            messagebox.showerror("Saved copy", f"The WAV was saved at {path}.\nLibrary: {exc}")
+            samples = self.sample_library.add_wavs(paths)
+        except (OSError, ValueError, EOFError, wave.Error) as exc:
+            messagebox.showerror(
+                "Saved copies", f"WAVs saved in {paths[0].parent}.\nLibrary unchanged: {exc}"
+            )
             return
         self._refresh_sample_tree()
-        self.sample_tree.selection_set(str(sample.slot))
-        self.sample_tree.see(str(sample.slot))
-        self._set_action(f"saved trimmed copy: {path.name}")
+        self.sample_tree.selection_set(str(samples[0].slot))
+        self.sample_tree.see(str(samples[0].slot))
+        self._set_action(
+            f"saved {len(samples)} sample copies; save the manifest to keep this library"
+        )
 
     def _stop_audio(self) -> None:
         stop_wav()

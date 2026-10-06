@@ -33,3 +33,16 @@ jobs:
 
       - name: Tests
         run: python -m pytest
+
+      - name: Install screenshot tooling
+        run: python -m pip install Pillow
+
+      - name: Sample editor Tk interactions
+        run: python tools/check_sample_editor_ui.py
+
+      - name: Upload sample editor evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ko-sample-editor-ui
+          path: docs/evidence/sample-editor-2026-10-06

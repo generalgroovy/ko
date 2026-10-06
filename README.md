@@ -28,7 +28,7 @@ python -m ko2_daw --list
 
 | Tool | Use it for | Saved/exported data |
 | --- | --- | --- |
-| Samples | Import, inspect, trim copies and preview local WAV samples | New PCM WAV copies; JSON manifest referencing WAV files |
+| Samples | Import, inspect, trim or slice copies and preview local WAV samples | New PCM WAV copies; JSON manifest referencing WAV files |
 | Performance | Record MIDI input/app actions; quantize and loop | Editable JSON clip; format-0 MIDI export |
 | Sequence / Scene Arranger | Four group tracks, steps, automation and song chains | Editable JSON project; type-1 MIDI export |
 | Audio | Arrange WAV clips without changing their sources | JSON timeline; stereo WAV mixdown |
@@ -57,9 +57,15 @@ python -m ko2_daw --import-web-manifest ko2-local-samples.json --sample-audio-di
 
 [Migration format, limits and capability comparison](docs/web-library-migration.md)
 
-## Trim a sample copy
+## Trim or slice a sample
 
-Select a local WAV, then **TRIM COPY**. Choose Start or End and click or drag on the waveform, or enter exact seconds. **Save trimmed copy** writes a new PCM WAV and adds it to the local library. Rate, channels and sample width are preserved; existing files cannot be replaced. Play the new row to audition it, then save the manifest. The original file is unchanged and no sample is uploaded to the device. Long file operations run in the background; finish an export before closing the app.
+Select a local WAV, then **TRIM COPY**. Choose Start or End and drag the waveform, or enter seconds. The selection shows its duration and exact frame count. With the waveform focused, Left/Right adjusts one frame; Shift adjusts 10 ms. Home/End moves the chosen edge to its available boundary. **Reset** selects the whole sample.
+
+Leave Export at **One copy** for a trim, or choose **2, 4, 8 or 16 slices** to chop the selected region evenly. **Save slices** asks for a parent folder, then creates a new `<sample>-slices` folder with ordered WAVs. Existing files and folders cannot be replaced; choose another location or rename an earlier slice folder to export again. Successful copies are added together to free local library slots. If the library is full, the saved WAVs remain available on disk.
+
+Rate, channels, sample width and every selected PCM frame are preserved. Slices have no gaps or overlap and differ in length by at most one frame. Boundaries are exact; no fades or zero-crossing adjustments are applied, so a cut may click. Play a saved row to audition it, then **SAVE MANIFEST** to keep the library. The original is unchanged and nothing is uploaded to the device.
+
+Waveform reads and exports run in the background. **Cancel** stops an operation and removes its own partial copies. Finish or cancel an export before closing. Cancelling the initial read leaves the editor available to close and reopen.
 
 ## Local data and recovery
 
@@ -98,6 +104,8 @@ python -m pytest
 The suite covers dry-run behavior, protocols, transfer integrity, project formats, GUI plugin wiring and library migration/recovery. Test outputs use `.pytest_tmp`; use a unique `--basetemp` if running separate suites concurrently. No test pass establishes physical MIDI/audio operation.
 
 The dev extra pins the same Ruff and Black versions used by CI; formatting targets Python 3.11. General CI runs compilation, lint, formatting and tests on every push and pull request. Specific inline lint exceptions document intentional GUI/worker recovery boundaries, serialized-data exception contracts and existing timestamp formats; keep those behaviors when changing the surrounding code.
+
+CI also runs real Windows Tk sample-editor interactions and uploads `ko-sample-editor-ui` screenshots/results. To reproduce on a Windows test desktop, install Pillow and run `python tools/check_sample_editor_ui.py`; it uses temporary synthetic WAVs and does not activate playback or MIDI. [Current iteration and evidence](docs/PROJECT-QUALITY-2026-10-06.md)
 
 For a Windows package, run **build_exe.bat**. Keep the complete `dist\KO2-DAW` folder together. CI's Windows packaging artifact is named `KO2-DAW-windows`; check that workflow's result before treating a package as verified.
 
