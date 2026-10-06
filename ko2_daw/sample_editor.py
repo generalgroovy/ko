@@ -257,7 +257,7 @@ class SampleEditor(tk.Toplevel):
                         dash=(4, 3),
                         tags="slice-boundary",
                     )
-                if len(regions) > 1:
+                if len(regions) > 1 and right - left >= 24:
                     center = (left + right) / 2
                     self.canvas.create_rectangle(
                         center - 10,

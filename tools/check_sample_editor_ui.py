@@ -105,6 +105,22 @@ def main():
         assert len(editor.canvas.find_withtag("slice-index")) == 4
         assert editor.canvas.find_all()[-2:] == editor.canvas.find_withtag("selection-edge")
         assert "108,001 frames" in editor.selection.get()
+        end_entry = next(
+            w
+            for w in descendants(editor)
+            if isinstance(w, ttk.Entry) and str(w["textvariable"]) == str(editor.end)
+        )
+        end_entry.delete(0, "end")
+        end_entry.insert(0, "0.251")
+        editor.count_box.set("16 slices")
+        root.update()
+        assert editor._region()[1] - editor._region()[0] == 48
+        assert not editor.canvas.find_withtag("slice-index"), "Narrow slice labels must not overlap"
+        assert len(editor.canvas.find_withtag("slice-boundary")) == 15
+        end_entry.delete(0, "end")
+        end_entry.insert(0, str(editor.duration))
+        editor.count_box.set("4 slices")
+        root.update()
 
         for width in (680, 460):
             editor.geometry(f"{width}x390+20+20")
@@ -195,6 +211,7 @@ def main():
                     "edge radio and boundary keys",
                     "invalid seconds disable export",
                     "odd-frame 4-slice partition",
+                    "short 16-slice selection hides overlapping index badges",
                     "all controls within minimum window",
                     "native save action creates exact PCM and adds library batch",
                     "close waits during write",
