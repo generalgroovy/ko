@@ -59,7 +59,11 @@ def main():
         editor = SampleEditor(root, str(source), saved)
         wait_for(lambda: not editor.reading)
         assert editor.frames == 120001 and editor.rate == 48000
-        assert editor.save_button["state"] == "normal"
+        assert editor.save_button.instate(["!disabled"]), (
+            editor.save_button.state(),
+            editor.selection.get(),
+            editor.status.get(),
+        )
         editor.canvas.focus_force()
         root.update()
         editor.canvas.event_generate("<Right>")
@@ -90,7 +94,7 @@ def main():
         start_entry.delete(0, "end")
         start_entry.insert(0, "oops")
         root.update()
-        assert editor.save_button["state"] == "disabled"
+        assert editor.save_button.instate(["disabled"])
         start_entry.delete(0, "end")
         start_entry.insert(0, "0.25")
         editor.count_box.set("4 slices")
@@ -139,7 +143,7 @@ def main():
             editor.save_button.invoke()
         wait_for(lambda: not editor.saving)
         assert len(completed) == 4
-        assert editor.save_button["state"] == "normal"
+        assert editor.save_button.instate(["!disabled"])
         assert source.read_bytes() == original
 
         destination = work / "cancelled"
@@ -162,7 +166,15 @@ def main():
             wait_for(lambda: not editor.saving)
         assert "Cancelled" in editor.status.get()
         assert not list(destination.iterdir()) and len(completed) == 4
-        assert editor.save_button["state"] == "normal"
+        assert editor.save_button.instate(["!disabled"])
+        assert not errors, errors
+        editor._close()
+        broken = work / "broken.wav"
+        broken.write_bytes(b"RIFF")
+        editor = SampleEditor(root, str(broken), saved)
+        wait_for(lambda: not editor.reading)
+        assert editor.save_button.instate(["disabled"])
+        assert editor.status.get(), "Malformed WAV must leave a readable explanation"
         assert not errors, errors
         editor._close()
     root.destroy()
@@ -186,6 +198,7 @@ def main():
                     "Cancel signals real worker and cleans output",
                     "original bytes unchanged",
                     "no Tk callback errors",
+                    "truncated header leaves an explanation and disabled export",
                 ],
                 "not_run": ["audible output", "MIDI hardware", "installer execution"],
             },

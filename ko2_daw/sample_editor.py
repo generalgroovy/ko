@@ -133,7 +133,7 @@ class SampleEditor(tk.Toplevel):
                     self.status.set(
                         "Destination already exists. Choose another location or rename it first."
                         if isinstance(error, FileExistsError)
-                        else str(error)
+                        else str(error) or "The WAV is incomplete. Choose another source."
                     )
                 elif kind == "waveform":
                     self.duration, self.peaks, self.rate, self.frames = value
