@@ -1,0 +1,30 @@
+{
+  "result": "PASS",
+  "platform": "Windows CI",
+  "tk": 8.6,
+  "viewports": [
+    680,
+    460
+  ],
+  "checks": [
+    "background waveform ready",
+    "keyboard frame and 10 ms steps",
+    "edge radio and boundary keys",
+    "invalid seconds disable export",
+    "odd-frame 4-slice partition",
+    "short 16-slice selection hides overlapping index badges",
+    "all controls within minimum window",
+    "native save action creates exact PCM and adds library batch",
+    "close waits during write",
+    "existing folder preserved and controls recover",
+    "Cancel signals real worker and cleans output",
+    "original bytes unchanged",
+    "no Tk callback errors",
+    "truncated header leaves an explanation and disabled export"
+  ],
+  "not_run": [
+    "audible output",
+    "MIDI hardware",
+    "installer execution"
+  ]
+}
