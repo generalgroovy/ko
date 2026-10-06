@@ -102,6 +102,7 @@ class SampleEditor(tk.Toplevel):
         self.cancel_button = ttk.Button(actions, text="Cancel", command=self._cancel)
         self.cancel_button.pack(side="left")
         ttk.Button(actions, text="Info", command=self._info).pack(side="right")
+        self.edge.trace_add("write", lambda *_args: self._draw())
         self._worker("waveform", self._read)
         self.poll_id = self.after(80, self._poll)
 
@@ -205,6 +206,7 @@ class SampleEditor(tk.Toplevel):
         if not self.peaks or not self.duration:
             return
         width, height = self.canvas.winfo_width(), self.canvas.winfo_height()
+        regions = []
         try:
             first, last = self._region()
             regions = slice_boundaries(first, last, self._count())
@@ -236,6 +238,48 @@ class SampleEditor(tk.Toplevel):
             self.canvas.create_line(
                 x, (1 - high) * height / 2, x, (1 - low) * height / 2, fill="#a1e3d1"
             )
+        if regions:
+            first_x, last_x = first / self.frames * width, last / self.frames * width
+            for left, right in ((0, first_x), (last_x, width)):
+                self.canvas.create_rectangle(
+                    left, 0, right, height, fill="#171c21", stipple="gray50", outline=""
+                )
+            for index, (start, end) in enumerate(regions):
+                left, right = start / self.frames * width, end / self.frames * width
+                if index:
+                    self.canvas.create_line(
+                        left,
+                        0,
+                        left,
+                        height,
+                        fill="#ffffff",
+                        width=2,
+                        dash=(4, 3),
+                        tags="slice-boundary",
+                    )
+                if len(regions) > 1:
+                    center = (left + right) / 2
+                    self.canvas.create_rectangle(
+                        center - 10,
+                        height - 22,
+                        center + 10,
+                        height - 4,
+                        fill="#171c21",
+                        outline="",
+                    )
+                    self.canvas.create_text(
+                        center, height - 13, text=str(index + 1), fill="#ffffff", tags="slice-index"
+                    )
+            for edge, x in (("start", first_x), ("end", last_x)):
+                self.canvas.create_line(
+                    max(2, min(width - 2, x)),
+                    0,
+                    max(2, min(width - 2, x)),
+                    height,
+                    fill="#ffc857" if self.edge.get() == edge else "#ffffff",
+                    width=3,
+                    tags="selection-edge",
+                )
 
     def _save(self) -> None:
         if self.saving or self.reading:

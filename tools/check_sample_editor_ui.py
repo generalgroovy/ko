@@ -100,6 +100,10 @@ def main():
         editor.count_box.set("4 slices")
         root.update()
         assert len(editor.canvas.find_all()) > len(editor.peaks)
+        assert len(editor.canvas.find_withtag("selection-edge")) == 2
+        assert len(editor.canvas.find_withtag("slice-boundary")) == 3
+        assert len(editor.canvas.find_withtag("slice-index")) == 4
+        assert editor.canvas.find_all()[-2:] == editor.canvas.find_withtag("selection-edge")
         assert "108,001 frames" in editor.selection.get()
 
         for width in (680, 460):
