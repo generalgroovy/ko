@@ -95,7 +95,7 @@ def main():
                     "Communication and safety",
                 ]
 
-                for state in ("empty", "selected"):
+                for state in ("empty", "selected", "saved"):
                     if state == "selected":
                         source = work / "warm-chord.wav"
                         with wave.open(str(source), "wb") as writer:
@@ -107,6 +107,7 @@ def main():
                             app._import_wav()
                         root.update()
                         assert "warm-chord" in app.sample_status.get()
+                        assert "Unsaved library changes" in app.sample_save_status.get()
                         app.modern_tool_buttons["SAMPLES"].invoke()
                         root.update()
                         assert root.focus_get() == app.sample_tree
@@ -120,6 +121,7 @@ def main():
                             "duration",
                             "path",
                         )
+                    if state == "saved":
                         manifest = work / "library.json"
                         with (
                             patch(
@@ -129,7 +131,10 @@ def main():
                             patch("ko2_daw.gui.messagebox.showinfo") as notice,
                         ):
                             app._save_sample_manifest()
-                        assert manifest.exists() and "not audio" in notice.call_args.args[1]
+                        assert manifest.exists()
+                        notice.assert_not_called()
+                        assert "Saved: library.json" in app.sample_save_status.get()
+                        assert "WAVs stay separate" in app.sample_save_status.get()
                     root.update()
                     for control in (
                         *app.modern_tool_buttons.values(),
@@ -183,6 +188,7 @@ def main():
                     "diagnostics remain in Tools menu",
                     "local import without device activation",
                     "manifest save explains referenced audio",
+                    "import marks library unsaved and successful save clears it inline",
                     "home actions and sample controls within minimum window",
                     "no MIDI or audio activation",
                     "no Tk callback errors",

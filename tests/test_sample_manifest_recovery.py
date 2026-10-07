@@ -81,6 +81,7 @@ def test_gui_open_restores_table_and_save_cancel_does_not_write(tmp_path, monkey
         project_root=tmp_path,
         _refresh_sample_tree=Mock(),
         _set_action=Mock(),
+        _mark_sample_library_saved=Mock(),
     )
     monkeypatch.setattr("ko2_daw.gui.filedialog.askopenfilename", lambda **kwargs: str(manifest))
     KO2DawApp._open_sample_manifest(view)

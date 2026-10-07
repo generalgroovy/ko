@@ -624,9 +624,14 @@ class KO2DawApp:
             sample_status,
             "Number of populated local sample slots out of the KO II-style 999-slot table.",
         )
+        self.sample_saved_rows = ()
+        self.sample_manifest_path = None
+        self.sample_save_status = tk.StringVar(
+            value="Library JSON keeps file references, not audio. Keep the WAVs with your backup."
+        )
         manifest_hint = tk.Label(
             toolbar,
-            text="Library JSON saves file references, not audio. Keep the WAVs with your backup.",
+            textvariable=self.sample_save_status,
             bg="#d8d4c8",
             justify=tk.LEFT,
             anchor="w",
@@ -1434,6 +1439,28 @@ class KO2DawApp:
             self.sample_tree.focus(selected)
             self.sample_tree.see(selected)
         self._update_sample_actions()
+        self._update_sample_save_status()
+
+    def _update_sample_save_status(self) -> None:
+        status = getattr(self, "sample_save_status", None)
+        if status is None:
+            return
+        current = tuple(self.sample_library.ordered())
+        if current != getattr(self, "sample_saved_rows", ()):
+            status.set(
+                "Unsaved library changes · Save Library keeps this table. WAVs stay separate."
+            )
+        elif getattr(self, "sample_manifest_path", None):
+            status.set(f"Saved: {self.sample_manifest_path.name} · WAVs stay separate.")
+        else:
+            status.set(
+                "Library JSON keeps file references, not audio. Keep the WAVs with your backup."
+            )
+
+    def _mark_sample_library_saved(self, path: Path) -> None:
+        self.sample_manifest_path = Path(path).resolve()
+        self.sample_saved_rows = tuple(self.sample_library.ordered())
+        self._update_sample_save_status()
 
     def _update_sample_actions(self, _event=None) -> None:
         state = tk.NORMAL if self.sample_tree.selection() else tk.DISABLED
@@ -1525,14 +1552,16 @@ class KO2DawApp:
         ):
             return
         self.sample_library = restored
+        self._mark_sample_library_saved(Path(path))
         self._refresh_sample_tree()
         self._set_action(f"opened {len(restored.samples)} local sample(s)")
 
     def _save_sample_manifest(self) -> None:
+        previous = getattr(self, "sample_manifest_path", None)
         target = filedialog.asksaveasfilename(
             title="Save desktop sample manifest",
-            initialdir=self.project_root,
-            initialfile="sample_manifest.json",
+            initialdir=previous.parent if previous else self.project_root,
+            initialfile=previous.name if previous else "sample_manifest.json",
             defaultextension=".json",
             filetypes=(("JSON manifest", "*.json"),),
         )
@@ -1543,11 +1572,8 @@ class KO2DawApp:
         except OSError as exc:
             messagebox.showerror("KO II Samples", str(exc))
             return
-        self._set_action(f"saved {path.name}")
-        messagebox.showinfo(
-            "Library saved",
-            f"Saved JSON manifest:\n{path}\n\nThis contains file references, not audio. Keep the referenced WAVs with your backup.",
-        )
+        self._mark_sample_library_saved(path)
+        self._set_action(f"Saved library: {path} · file references, not audio")
 
     def _probe_identity(self) -> None:
         self._run_sysex_probe("identity", build_universal_identity_request())

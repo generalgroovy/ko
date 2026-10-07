@@ -47,6 +47,8 @@ Start with **Samples** to import local WAVs or **Compose** to arrange scenes. Th
 
 The table keeps its selected slot when refreshed and selects the first available sample otherwise. Its status names the selected file. **Format details** reveals sample rate, channels, bit depth and size; horizontal and vertical scrollbars keep paths and long libraries reachable. **PLAY LOCAL** and **TRIGGER MIDI** become available when a sample is selected. If a WAV batch is only partly valid, successful files remain imported and a warning identifies the skipped files.
 
+**Unsaved library changes** means the current table differs from its last successful open or save, including new imports and trimmed copies. A successful save shows the manifest's name inline; the bottom action status gives its full path. Save Library opens the file chooser at that library's folder and name next time, with the normal overwrite confirmation. Cancelling or failing a save keeps the unsaved state and previous destination. WAV audio remains separate, and saving the library does not enable automatic saving.
+
 Keep referenced WAV files with your backup. Saved paths are normally absolute; relative paths in a manifest resolve from the manifest's folder. On open, WAV format and duration are read from the actual files. If files moved, restore their paths or update the manifest's paths before reopening. The library is not automatically saved or reopened at startup.
 
 For the older browser app, download every sample as WAV and export its JSON manifest. Keep the downloaded filenames together. In **Samples → IMPORT WEB LIBRARY**, choose the browser JSON and the WAV folder. This merges into free slots; it does not replace existing samples. A bad or incomplete batch changes nothing.
