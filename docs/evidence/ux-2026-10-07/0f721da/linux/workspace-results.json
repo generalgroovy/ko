@@ -1,0 +1,26 @@
+{
+  "result": "PASS",
+  "platform": "linux",
+  "capture": "complete screenshots only; Windows small-desktop runs exercise widgets without full-window visual acceptance",
+  "viewport": [
+    1180,
+    760
+  ],
+  "checks": [
+    "composed stable GUI with all plugins",
+    "local first-use and selected-file status",
+    "keyboard home navigation and focus",
+    "diagnostics remain in Tools menu",
+    "local import without device activation",
+    "manifest save explains referenced audio",
+    "home actions and sample controls within minimum window",
+    "no MIDI or audio activation",
+    "no Tk callback errors",
+    "all hardware legends fit their buttons at minimum studio width"
+  ],
+  "not_run": [
+    "physical hardware",
+    "audible output",
+    "human usability study"
+  ]
+}

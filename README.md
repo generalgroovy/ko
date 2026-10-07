@@ -14,6 +14,8 @@ python -m ko2_daw
 
 Stable mode is the default. Dry-run use and native Windows WinMM MIDI do not require third-party application packages. To install a console command, use `python -m pip install -e .`, then `ko2-daw`.
 
+The full studio currently needs at least **1180 × 760 pixels of available desktop space**, plus window borders and the taskbar. Its fixed side-by-side layout is not supported on a 1024 × 768 screen. The separate sample editor works down to 460 × 390; this does not make the full studio responsive at that size.
+
 The app starts with dry-run routing. If a usable EP-133 route is detected, it asks before opening live MIDI. Use **CONNECT EP-133** when you intend to send MIDI. Opening the app or importing a local library does not upload samples to the device.
 
 For startup diagnostics without the GUI:
@@ -30,7 +32,7 @@ python -m ko2_daw --list
 | --- | --- | --- |
 | Samples | Import, inspect, trim or slice copies and preview local WAV samples | New PCM WAV copies; JSON manifest referencing WAV files |
 | Performance | Record MIDI input/app actions; quantize and loop | Editable JSON clip; format-0 MIDI export |
-| Sequence / Scene Arranger | Four group tracks, steps, automation and song chains | Editable JSON project; type-1 MIDI export |
+| Compose / Scene Arranger | Four group tracks, steps, automation and song chains | Editable JSON project; type-1 MIDI export |
 | Audio | Arrange WAV clips without changing their sources | JSON timeline; stereo WAV mixdown |
 | Files / Library / Projects | Inspect and download supported hardware data | Inventory, immutable bundles, metadata and analysis |
 | MIDI / Protocol / Communication | Diagnose routes and inspect messages | Reports, logs and communication settings |
@@ -61,7 +63,7 @@ python -m ko2_daw --import-web-manifest ko2-local-samples.json --sample-audio-di
 
 Select a local WAV, then **TRIM / SLICE**. Choose Start or End and drag the waveform, or enter seconds. The selection shows its duration and exact frame count. With the waveform focused, Left/Right adjusts one frame; Shift adjusts 10 ms. Home/End moves the chosen edge to its available boundary. **Select all** selects the whole sample.
 
-Leave Export at **One copy** for a trim, or choose **2, 4, 8 or 16 slices** to chop the selected region evenly. **Save slices** asks for a parent folder, then creates a new `<sample>-slices` folder with ordered WAVs. Existing files and folders cannot be replaced; choose another location or rename an earlier slice folder to export again. Successful copies are added together to free local library slots. If the library is full, the saved WAVs remain available on disk.
+Leave **Make** at **One copy** for a trim, or choose **2, 4, 8 or 16 slices** to chop the selected region evenly. **Save slices** asks for a parent folder, then creates a new `<sample>-slices` folder with ordered WAVs. Existing files and folders cannot be replaced; choose another location or rename an earlier slice folder to export again. Successful copies are added together to free local library slots. If the library is full, the saved WAVs remain available on disk.
 
 Rate, channels, sample width and every selected PCM frame are preserved. Slices have no gaps or overlap and differ in length by at most one frame. Boundaries are exact; no fades or zero-crossing adjustments are applied, so a cut may click. Play a saved row to audition it, then **SAVE LIBRARY** to keep the library. The original is unchanged and nothing is uploaded to the device.
 
