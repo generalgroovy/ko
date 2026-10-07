@@ -40,9 +40,12 @@ jobs:
       - name: Sample editor Tk interactions
         run: python tools/check_sample_editor_ui.py
 
+      - name: Local workspace Tk interactions
+        run: python tools/check_workspace_ui.py
+
       - name: Upload sample editor evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ko-sample-editor-ui
-          path: docs/evidence/sample-editor-2026-10-06
+          path: docs/evidence/ux-2026-10-07

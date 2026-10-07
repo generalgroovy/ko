@@ -26,7 +26,7 @@ def descendants(widget):
 
 
 def main():
-    output = Path("docs/evidence/sample-editor-2026-10-06")
+    output = Path("docs/evidence/ux-2026-10-07")
     output.mkdir(parents=True, exist_ok=True)
     root = tk.Tk()
     root.withdraw()
@@ -64,6 +64,7 @@ def main():
             editor.selection.get(),
             editor.status.get(),
         )
+        assert str(editor.cancel_button["text"]) == "Close"
         editor.canvas.focus_force()
         root.update()
         editor.canvas.event_generate("<Right>")
@@ -154,6 +155,20 @@ def main():
         assert editor.winfo_exists() and "Cancel" in editor.status.get()
         wait_for(lambda: not editor.saving)
         assert len(completed) == 4 and len(library.samples) == 4
+        assert Path(editor.saved_location.get()) == completed[0].parent
+        assert editor.location_entry.winfo_ismapped()
+        editor.location_entry.focus_force()
+        root.update()
+        assert editor.location_entry.selection_present()
+        assert str(editor.cancel_button["text"]) == "Close"
+        ImageGrab.grab(
+            bbox=(
+                editor.winfo_rootx(),
+                editor.winfo_rooty(),
+                editor.winfo_rootx() + editor.winfo_width(),
+                editor.winfo_rooty() + editor.winfo_height(),
+            )
+        ).save(output / "sample-editor-saved.png")
         selected = b""
         for path in completed:
             with wave.open(str(path), "rb") as reader:
@@ -179,6 +194,8 @@ def main():
             patch("ko2_daw.sample_editor.slice_copies", side_effect=gated_export),
         ):
             editor.save_button.invoke()
+            assert all(control.instate(["disabled"]) for control in editor.range_controls)
+            assert str(editor.cancel_button["text"]) == "Cancel"
             editor.cancel_button.invoke()
             editor._close()
             assert editor.winfo_exists()
@@ -187,6 +204,7 @@ def main():
         assert "Cancelled" in editor.status.get()
         assert not list(destination.iterdir()) and len(completed) == 4
         assert editor.save_button.instate(["!disabled"])
+        assert all(control.instate(["!disabled"]) for control in editor.range_controls)
         assert not errors, errors
         editor._close()
         broken = work / "broken.wav"
@@ -195,8 +213,16 @@ def main():
         wait_for(lambda: not editor.reading)
         assert editor.save_button.instate(["disabled"])
         assert editor.status.get(), "Malformed WAV must leave a readable explanation"
+        assert str(editor.reset_button["text"]) == "Retry read"
+        broken.write_bytes(original)
+        editor.reset_button.invoke()
+        assert editor.reading and editor.reset_button.instate(["disabled"])
+        wait_for(lambda: not editor.reading)
+        assert editor.frames == 120001 and editor.save_button.instate(["!disabled"])
+        assert str(editor.reset_button["text"]) == "Select all"
         assert not errors, errors
-        editor._close()
+        editor.cancel_button.invoke()
+        assert not editor.winfo_exists()
     root.destroy()
     (output / "results.json").write_text(
         json.dumps(
@@ -220,6 +246,10 @@ def main():
                     "original bytes unchanged",
                     "no Tk callback errors",
                     "truncated header leaves an explanation and disabled export",
+                    "range controls locked while writing and recovered after cancellation",
+                    "saved output folder is visible and selectable for copying",
+                    "failed waveform can be retried after fixing the source",
+                    "idle Close action and whole-sample selection are explicit",
                 ],
                 "not_run": ["audible output", "MIDI hardware", "installer execution"],
             },

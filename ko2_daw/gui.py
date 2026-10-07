@@ -565,6 +565,8 @@ class KO2DawApp:
         parent.rowconfigure(1, weight=1)
         toolbar = tk.Frame(parent, bg="#d8d4c8")
         toolbar.grid(row=0, column=0, sticky="ew", pady=(0, 6))
+        for column in range(3):
+            toolbar.columnconfigure(column, weight=1, uniform="sample-action")
         sample_buttons = (
             (
                 "IMPORT WAV",
@@ -572,14 +574,9 @@ class KO2DawApp:
                 "Add WAV files to the local 999-slot sample library. This does not upload to the KO II.",
             ),
             (
-                "IMPORT WEB LIBRARY",
-                self._import_web_library,
-                "Merge a Web MIDI Lab manifest and its exported WAV files into free local slots.",
-            ),
-            (
-                "OPEN MANIFEST",
-                self._open_sample_manifest,
-                "Restore a saved desktop sample table. Referenced WAV files must still be available.",
+                "TRIM / SLICE",
+                self._edit_selected_sample,
+                "Trim a copy or split a region into equal slices. The original stays unchanged.",
             ),
             (
                 "PLAY LOCAL",
@@ -588,30 +585,35 @@ class KO2DawApp:
             ),
             ("STOP AUDIO", self._stop_audio, "Stop local WAV preview playback."),
             (
-                "TRIM COPY",
-                self._edit_selected_sample,
-                "Trim a copy or split a region into equal slices. The original stays unchanged.",
+                "OPEN LIBRARY…",
+                self._open_sample_manifest,
+                "Restore a saved JSON manifest. Referenced WAV files must still be available.",
+            ),
+            (
+                "SAVE LIBRARY…",
+                self._save_sample_manifest,
+                "Save a JSON manifest of the local table. WAV audio stays in its source files.",
+            ),
+            (
+                "IMPORT WEB LIBRARY",
+                self._import_web_library,
+                "Merge a Web MIDI Lab manifest and its exported WAV files into free local slots.",
             ),
             (
                 "TRIGGER MIDI",
                 self._trigger_selected_sample,
-                "Trigger the pad note corresponding to the selected sample slot.",
-            ),
-            (
-                "SAVE MANIFEST",
-                self._save_sample_manifest,
-                "Choose where to save the local sample table. WAV audio stays in its source files.",
+                "Trigger the pad note corresponding to the selected sample slot. Dry run logs only; live mode sends MIDI. This does not play the local WAV.",
             ),
         )
         self.sample_selection_buttons = []
         for index, (text, command, tip) in enumerate(sample_buttons):
             button = tk.Button(toolbar, text=text, command=command, bg="#efeadf")
-            if text in {"PLAY LOCAL", "TRIGGER MIDI", "TRIM COPY"}:
+            if text in {"PLAY LOCAL", "TRIGGER MIDI", "TRIM / SLICE"}:
                 button.configure(state=tk.DISABLED)
                 self.sample_selection_buttons.append(button)
             button.grid(row=index // 3, column=index % 3, sticky="ew", padx=(0, 6), pady=(0, 4))
             self._tip(button, tip)
-        self.sample_status = tk.StringVar(value=f"0 / {MAX_SAMPLE_SLOTS} slots")
+        self.sample_status = tk.StringVar(value="Import WAV to begin · no device needed")
         sample_status = tk.Label(
             toolbar, textvariable=self.sample_status, bg="#d8d4c8", font=("Segoe UI", 10, "bold")
         )
@@ -619,6 +621,22 @@ class KO2DawApp:
         self._tip(
             sample_status,
             "Number of populated local sample slots out of the KO II-style 999-slot table.",
+        )
+        manifest_hint = tk.Label(
+            toolbar,
+            text="Library JSON saves file references, not audio. Keep the WAVs with your backup.",
+            bg="#d8d4c8",
+            justify=tk.LEFT,
+            anchor="w",
+            wraplength=420,
+        )
+        manifest_hint.grid(row=4, column=0, columnspan=3, sticky="ew", pady=(3, 0))
+        toolbar.bind(
+            "<Configure>",
+            lambda event: (
+                manifest_hint.configure(wraplength=max(120, event.width - 12)),
+                sample_status.configure(wraplength=max(120, event.width - 12)),
+            ),
         )
 
         columns = ("slot", "name", "duration", "rate", "channels", "bits", "size", "path")
@@ -648,6 +666,23 @@ class KO2DawApp:
             self.sample_tree.heading(column, text=headings[column])
             self.sample_tree.column(column, width=widths[column], anchor="w")
         self.sample_tree.grid(row=1, column=0, sticky="nsew")
+        self.sample_tree.configure(displaycolumns=("slot", "name", "duration", "path"))
+        self.sample_details = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            toolbar,
+            text="Format details",
+            variable=self.sample_details,
+            command=lambda: self.sample_tree.configure(
+                displaycolumns=(
+                    columns if self.sample_details.get() else ("slot", "name", "duration", "path")
+                )
+            ),
+        ).grid(row=2, column=2, sticky="w")
+        vertical = ttk.Scrollbar(parent, orient="vertical", command=self.sample_tree.yview)
+        horizontal = ttk.Scrollbar(parent, orient="horizontal", command=self.sample_tree.xview)
+        self.sample_tree.configure(yscrollcommand=vertical.set, xscrollcommand=horizontal.set)
+        vertical.grid(row=1, column=1, sticky="ns")
+        horizontal.grid(row=2, column=0, sticky="ew")
         self._tip(
             self.sample_tree,
             "Local sample table. Select a row to preview audio or trigger the matching MIDI pad slot.",
@@ -1402,6 +1437,18 @@ class KO2DawApp:
         state = tk.NORMAL if self.sample_tree.selection() else tk.DISABLED
         for button in self.sample_selection_buttons:
             button.configure(state=state)
+        selected = self.sample_tree.selection()
+        sample = self.sample_library.samples.get(int(selected[0])) if selected else None
+        count = len(self.sample_library.samples)
+        self.sample_status.set(
+            f"{count} / {MAX_SAMPLE_SLOTS} slots · Selected: {sample.name}"
+            if sample
+            else (
+                f"{count} / {MAX_SAMPLE_SLOTS} slots · Select a WAV to play or trim"
+                if count
+                else "Import WAV to begin · no device needed"
+            )
+        )
 
     def _selected_sample(self):
         selected = self.sample_tree.selection()
@@ -1442,7 +1489,7 @@ class KO2DawApp:
         self.sample_tree.selection_set(str(samples[0].slot))
         self.sample_tree.see(str(samples[0].slot))
         self._set_action(
-            f"saved {len(samples)} sample copies; save the manifest to keep this library"
+            f"saved {len(samples)} sample copies; Save Library keeps their file references"
         )
 
     def _stop_audio(self) -> None:
@@ -1495,7 +1542,10 @@ class KO2DawApp:
             messagebox.showerror("KO II Samples", str(exc))
             return
         self._set_action(f"saved {path.name}")
-        messagebox.showinfo("KO II Samples", f"Saved sample manifest:\n{path}")
+        messagebox.showinfo(
+            "Library saved",
+            f"Saved JSON manifest:\n{path}\n\nThis contains file references, not audio. Keep the referenced WAVs with your backup.",
+        )
 
     def _probe_identity(self) -> None:
         self._run_sysex_probe("identity", build_universal_identity_request())
@@ -1967,7 +2017,7 @@ class KO2DawApp:
             "- PLAY LOCAL previews the selected WAV on the computer.",
             "- STOP AUDIO stops local preview.",
             "- TRIGGER MIDI triggers the pad note mapped from the selected slot.",
-            "- SAVE MANIFEST writes the local sample table to JSON.",
+            "- SAVE LIBRARY writes the local table to a JSON manifest; keep its referenced WAVs with your backup.",
             "",
             "Hardware Files tab",
             "- READ IDENTITY asks the device for MIDI identity.",

@@ -68,6 +68,17 @@ def apply_modern_shell_patch(gui_module: Any) -> None:
         app_menu.add_separator()
         app_menu.add_command(label="Quit", command=self._close)
         menu.add_cascade(label="Application", menu=app_menu)
+        tools_menu = tk.Menu(menu)
+        for label, method_name in (
+            ("MIDI route and detection", "_show_midi_detection_summary"),
+            ("Protocol inspector", "_show_protocol_window"),
+            ("Communication and safety", "_show_comm_panel"),
+        ):
+            tools_menu.add_command(
+                label=label,
+                command=lambda method=method_name: self._modern_invoke_tool(getattr(self, method)),
+            )
+        menu.add_cascade(label="Tools", menu=tools_menu)
 
         help_menu = tk.Menu(menu)
         help_menu.add_command(
@@ -214,93 +225,70 @@ def apply_modern_shell_patch(gui_module: Any) -> None:
     def _modern_build_tool_cards(self, parent) -> None:
         rail = tk.Frame(parent, bg=BG)
         rail.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(8, 0))
-        tools: tuple[tuple[str, str, str, str], ...] = (
-            ("PERFORM", "Capture and overdub MIDI", "_show_performance_window", "performance"),
+        groups = (
             (
-                "SEQUENCE",
-                "Scenes, clips and song",
-                "_show_arranger_window",
-                "arranger",
+                "ON THIS COMPUTER",
+                (
+                    ("SAMPLES", "Import, trim and slice WAVs", "_modern_show_samples"),
+                    ("COMPOSE", "Scenes, clips and song", "_show_arranger_window"),
+                    ("AUDIO", "Record, edit and mix", "_show_audio_studio"),
+                    ("PERFORM", "Capture and overdub MIDI", "_show_performance_window"),
+                ),
             ),
-            ("AUDIO", "Record, edit and mix", "_show_audio_studio", "audio"),
-            ("PROJECTS", "Backup, inspect and diff", "_show_project_catalog", "projects"),
             (
-                "FILES",
-                "Browse device storage",
-                "_show_device_file_explorer",
-                "files",
+                "DEVICE & SETTINGS · MIDI stays in dry run until you connect",
+                (
+                    ("DEVICE FILES", "Browse sampler storage", "_show_device_file_explorer"),
+                    ("DEVICE LIBRARY", "Inspect sampler sounds", "_show_device_library"),
+                    ("PROJECTS", "Backup, inspect and diff", "_show_project_catalog"),
+                    ("SETTINGS", "App and route preferences", "_modern_show_settings"),
+                ),
             ),
-            ("LIBRARY", "Samples, waveforms, preview", "_show_device_library", "library"),
-            (
-                "MIDI",
-                "Detect and configure route",
-                "_show_midi_detection_summary",
-                "midi",
-            ),
-            ("PROTOCOL", "Inspect read-only SysEx", "_show_protocol_window", "protocol"),
-            ("COMM", "Connection and safety", "_show_comm_panel", "communication"),
-            ("SETTINGS", "App and scan policy", "_modern_show_settings", "settings"),
         )
-        for index, (title, subtitle, method_name, key) in enumerate(tools):
-            column = index % 5
-            row = index // 5
-            rail.columnconfigure(column, weight=1, uniform="tool-card")
-            card = tk.Frame(
-                rail,
-                bg=CARD,
-                highlightbackground=LINE,
-                highlightthickness=1,
-                padx=10,
-                pady=8,
-                cursor="hand2",
-            )
-            card.grid(
-                row=row,
-                column=column,
-                sticky="nsew",
-                padx=(0 if column == 0 else 4, 0),
-                pady=(0 if row == 0 else 4, 0),
-            )
-            marker = tk.Frame(card, bg=ACCENT if index < 4 else INK, width=4)
-            marker.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 9))
-            text = tk.Frame(card, bg=CARD)
-            text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-            title_widget = tk.Label(
-                text,
-                text=title,
-                bg=CARD,
-                fg=INK,
-                font=("Segoe UI", 9, "bold"),
-                anchor="w",
-            )
-            title_widget.pack(fill=tk.X)
-            subtitle_widget = tk.Label(
-                text,
-                text=subtitle,
-                bg=CARD,
-                fg=MUTED,
-                font=("Segoe UI", 8),
-                anchor="w",
-            )
-            subtitle_widget.pack(fill=tk.X, pady=(2, 0))
-            command = getattr(self, method_name, None)
-            if not callable(command):
-                command = lambda name=title: self._set_action(f"{name.lower()} unavailable")
-            for widget in (card, marker, text, title_widget, subtitle_widget):
-                widget.bind(
-                    "<Button-1>",
-                    lambda _event, cmd=command: self._modern_invoke_tool(cmd),
+        self.modern_tool_buttons = {}
+        for group_index, (heading, tools) in enumerate(groups):
+            tk.Label(
+                rail, text=heading, bg=BG, fg=INK, font=("Segoe UI", 8, "bold"), anchor="w"
+            ).grid(row=group_index * 2, column=0, columnspan=4, sticky="ew", pady=(3, 2))
+            for column, (title, subtitle, method_name) in enumerate(tools):
+                rail.columnconfigure(column, weight=1, uniform="tool-card")
+                command = getattr(self, method_name)
+                button = tk.Button(
+                    rail,
+                    text=f"{title}\n{subtitle}",
+                    command=lambda cmd=command: self._modern_invoke_tool(cmd),
+                    bg=CARD,
+                    fg=INK,
+                    activebackground="#ffffff",
+                    activeforeground=INK,
+                    font=("Segoe UI", 9),
+                    justify=tk.LEFT,
+                    anchor="w",
+                    padx=12,
+                    pady=6,
+                    relief=tk.FLAT,
+                    highlightthickness=2,
+                    highlightbackground=LINE,
+                    highlightcolor=ACCENT_DARK,
+                    takefocus=True,
                 )
-            card.bind(
-                "<Enter>",
-                lambda _event, target=card: target.configure(highlightbackground=ACCENT),
-            )
-            card.bind(
-                "<Leave>",
-                lambda _event, target=card: target.configure(highlightbackground=LINE),
-            )
-            self._tip(card, f"{title}: {subtitle}.")
-            setattr(self, f"modern_tool_{key}", card)
+                button.grid(
+                    row=group_index * 2 + 1,
+                    column=column,
+                    sticky="nsew",
+                    padx=(0 if column == 0 else 4, 0),
+                )
+                # Native Space activation plus Return make every tool keyboard reachable.
+                button.bind("<Return>", lambda _event, target=button: target.invoke())
+                self.modern_tool_buttons[title] = button
+
+    def _modern_show_samples(self) -> None:
+        for tab_id in self.workspace_tabs.tabs():
+            if self.workspace_tabs.tab(tab_id, "text") == "Samples":
+                self.workspace_tabs.select(tab_id)
+                self.sample_tree.focus_set()
+                self._set_action("local samples · no device needed")
+                return
 
     def _build_mode_strip(self, parent) -> None:
         strip = tk.Frame(parent, bg=BG)
@@ -903,6 +891,7 @@ def apply_modern_shell_patch(gui_module: Any) -> None:
     app_class._modern_build_function_columns = _modern_build_function_columns
     app_class._modern_nudge = _modern_nudge
     app_class._modern_build_tool_cards = _modern_build_tool_cards
+    app_class._modern_show_samples = _modern_show_samples
     app_class._modern_invoke_tool = _modern_invoke_tool
     app_class._modern_theme_open_windows = _modern_theme_open_windows
     app_class._modern_show_settings = _modern_show_settings

@@ -35,15 +35,15 @@ python -m ko2_daw --list
 | Files / Library / Projects | Inspect and download supported hardware data | Inventory, immutable bundles, metadata and analysis |
 | MIDI / Protocol / Communication | Diagnose routes and inspect messages | Reports, logs and communication settings |
 
-Tool cards open the relevant windows. Stop playback before changing routing. Performance and arranger playback release held notes on Stop; edits in those tools have their own Undo/Redo.
+Start with **Samples** to import local WAVs or **Compose** to arrange scenes. The first row works on the computer; **Device Files** and **Device Library** inspect the sampler. **Tools** keeps MIDI detection, protocol inspection and communication settings available without crowding the home screen. Every home tool is reachable with Tab and opens with Space or Enter. Stop playback before changing routing. Performance and arranger playback release held notes on Stop; edits in those tools have their own Undo/Redo.
 
 ## Save and reopen a local sample library
 
 1. In **Samples**, use **IMPORT WAV** for desktop audio files.
-2. Use **SAVE MANIFEST** and choose a JSON destination. The manifest saves slot/name/path information; it does not copy or embed audio.
-3. Use **OPEN MANIFEST** to restore that desktop table after restarting. Replacing a nonempty table asks for confirmation. Invalid manifests, duplicate slots or unavailable WAVs leave the current table unchanged.
+2. Use **SAVE LIBRARY** and choose a JSON destination. The manifest saves slot/name/path information; it does not copy or embed audio.
+3. Use **OPEN LIBRARY** to restore that desktop table after restarting. Replacing a nonempty table asks for confirmation. Invalid manifests, duplicate slots or unavailable WAVs leave the current table unchanged.
 
-The table keeps its selected slot when refreshed and selects the first available sample otherwise. **PLAY LOCAL** and **TRIGGER MIDI** become available when a sample is selected. If a WAV batch is only partly valid, successful files remain imported and a warning identifies the skipped files.
+The table keeps its selected slot when refreshed and selects the first available sample otherwise. Its status names the selected file. **Format details** reveals sample rate, channels, bit depth and size; horizontal and vertical scrollbars keep paths and long libraries reachable. **PLAY LOCAL** and **TRIGGER MIDI** become available when a sample is selected. If a WAV batch is only partly valid, successful files remain imported and a warning identifies the skipped files.
 
 Keep referenced WAV files with your backup. Saved paths are normally absolute; relative paths in a manifest resolve from the manifest's folder. On open, WAV format and duration are read from the actual files. If files moved, restore their paths or update the manifest's paths before reopening. The library is not automatically saved or reopened at startup.
 
@@ -59,13 +59,13 @@ python -m ko2_daw --import-web-manifest ko2-local-samples.json --sample-audio-di
 
 ## Trim or slice a sample
 
-Select a local WAV, then **TRIM COPY**. Choose Start or End and drag the waveform, or enter seconds. The selection shows its duration and exact frame count. With the waveform focused, Left/Right adjusts one frame; Shift adjusts 10 ms. Home/End moves the chosen edge to its available boundary. **Reset** selects the whole sample.
+Select a local WAV, then **TRIM / SLICE**. Choose Start or End and drag the waveform, or enter seconds. The selection shows its duration and exact frame count. With the waveform focused, Left/Right adjusts one frame; Shift adjusts 10 ms. Home/End moves the chosen edge to its available boundary. **Select all** selects the whole sample.
 
 Leave Export at **One copy** for a trim, or choose **2, 4, 8 or 16 slices** to chop the selected region evenly. **Save slices** asks for a parent folder, then creates a new `<sample>-slices` folder with ordered WAVs. Existing files and folders cannot be replaced; choose another location or rename an earlier slice folder to export again. Successful copies are added together to free local library slots. If the library is full, the saved WAVs remain available on disk.
 
-Rate, channels, sample width and every selected PCM frame are preserved. Slices have no gaps or overlap and differ in length by at most one frame. Boundaries are exact; no fades or zero-crossing adjustments are applied, so a cut may click. Play a saved row to audition it, then **SAVE MANIFEST** to keep the library. The original is unchanged and nothing is uploaded to the device.
+Rate, channels, sample width and every selected PCM frame are preserved. Slices have no gaps or overlap and differ in length by at most one frame. Boundaries are exact; no fades or zero-crossing adjustments are applied, so a cut may click. Play a saved row to audition it, then **SAVE LIBRARY** to keep the library. The original is unchanged and nothing is uploaded to the device.
 
-Waveform reads and exports run in the background. **Cancel** stops an operation and removes its own partial copies. Finish or cancel an export before closing. Cancelling the initial read leaves the editor available to close and reopen.
+Waveform reads and exports run in the background. **Cancel** stops an operation and removes its own partial copies. Finish or cancel an export before closing. After a failed or cancelled initial read, **Retry read** tries the same source again. While saving, range controls stay locked to the exported selection. **Close** replaces Cancel when idle. The completed export shows its full folder path in **Last saved in**; focus that field and copy it with Ctrl+C.
 
 ## Local data and recovery
 
