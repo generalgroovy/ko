@@ -378,7 +378,7 @@ def apply_modern_shell_patch(gui_module: Any) -> None:
                 dark=True,
                 font_size=9,
             )
-            button.grid(row=row, column=0, sticky="nsew", padx=4, pady=9)
+            button.grid(row=row, column=0, sticky="nsew", padx=2, pady=9)
             self._tip(button, f"EP-133 {label} control.")
 
         self.modern_fader_value = tk.IntVar(value=96)
