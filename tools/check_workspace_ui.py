@@ -47,6 +47,8 @@ def main():
                 app = gui.KO2DawApp(root)
                 root.geometry("1180x760+10+10")
                 root.update()
+                assert root.winfo_rootx() + root.winfo_width() <= root.winfo_screenwidth()
+                assert root.winfo_rooty() + root.winfo_height() <= root.winfo_screenheight()
                 assert app.status.get() == "DRY RUN" and not app.live_output_port
                 assert "Import WAV" in app.sample_status.get()
                 assert all(

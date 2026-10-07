@@ -37,6 +37,9 @@ jobs:
       - name: Install screenshot tooling
         run: python -m pip install Pillow
 
+      - name: Size the CI desktop for complete workspace screenshots
+        run: Set-DisplayResolution -Width 1600 -Height 1000 -Force
+
       - name: Sample editor Tk interactions
         run: python tools/check_sample_editor_ui.py
 
