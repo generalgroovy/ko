@@ -7,6 +7,7 @@ import os
 import sys
 import tempfile
 import tkinter as tk
+import tkinter.font as tkfont
 import wave
 from pathlib import Path
 from unittest.mock import patch
@@ -15,6 +16,19 @@ from PIL import ImageGrab
 
 from ko2_daw import gui
 from ko2_daw.gui_plugins import install_gui_plugins
+
+
+def check_hardware_labels(widget):
+    for child in widget.winfo_children():
+        if getattr(child, "studio_device_button", False):
+            font = tkfont.Font(font=child["font"])
+            border = child.winfo_pixels(child["borderwidth"]) + child.winfo_pixels(
+                child["highlightthickness"]
+            )
+            needed = max(font.measure(line) for line in str(child["text"]).splitlines())
+            needed += 2 * (border + child.winfo_pixels(child["padx"]))
+            assert needed <= child.winfo_width(), (str(child["text"]), needed, child.winfo_width())
+        check_hardware_labels(child)
 
 
 def main():
@@ -48,6 +62,7 @@ def main():
                 app = gui.KO2DawApp(root)
                 root.geometry("1180x760+10+10")
                 root.update()
+                check_hardware_labels(root)
                 assert app.status.get() == "DRY RUN" and not app.live_output_port
                 assert "Import WAV" in app.sample_status.get()
                 assert all(
@@ -171,6 +186,7 @@ def main():
                     "home actions and sample controls within minimum window",
                     "no MIDI or audio activation",
                     "no Tk callback errors",
+                    "all hardware legends fit their buttons at minimum studio width",
                 ],
                 "not_run": ["physical hardware", "audible output", "human usability study"],
             },

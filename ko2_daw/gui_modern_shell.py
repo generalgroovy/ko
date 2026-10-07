@@ -336,7 +336,7 @@ def apply_modern_shell_patch(gui_module: Any) -> None:
             pady=15,
         )
         deck.grid(row=0, column=0, sticky="nsew")
-        for column, weight in enumerate((2, 2, 3, 3, 3, 2, 2)):
+        for column, weight in enumerate((2, 2, 3, 3, 3, 3, 3)):
             deck.columnconfigure(column, weight=weight, uniform="device-column")
         for row in range(6):
             deck.rowconfigure(row, weight=1, uniform="device-row")
@@ -378,7 +378,7 @@ def apply_modern_shell_patch(gui_module: Any) -> None:
                 dark=True,
                 font_size=9,
             )
-            button.grid(row=row, column=0, sticky="nsew", padx=9, pady=9)
+            button.grid(row=row, column=0, sticky="nsew", padx=4, pady=9)
             self._tip(button, f"EP-133 {label} control.")
 
         self.modern_fader_value = tk.IntVar(value=96)
@@ -471,7 +471,7 @@ def apply_modern_shell_patch(gui_module: Any) -> None:
         )
         for row, (label, command) in enumerate(left_functions):
             button = _split_device_button(tk, deck, label, command)
-            button.grid(row=row, column=5, sticky="nsew", padx=9, pady=9)
+            button.grid(row=row, column=5, sticky="nsew", padx=5, pady=9)
             self._tip(button, f"EP-133 {label.replace(chr(10), ' / ')} control.")
         for row, (label, command) in enumerate(right_functions):
             button = _split_device_button(
@@ -481,7 +481,7 @@ def apply_modern_shell_patch(gui_module: Any) -> None:
                 command,
                 accent=row == 0,
             )
-            button.grid(row=row, column=6, sticky="nsew", padx=9, pady=9)
+            button.grid(row=row, column=6, sticky="nsew", padx=5, pady=9)
             self._tip(button, f"EP-133 {label.replace(chr(10), ' / ')} control.")
 
         minus = _device_button(
@@ -522,8 +522,8 @@ def apply_modern_shell_patch(gui_module: Any) -> None:
             dark=True,
             font_size=10,
         )
-        record.grid(row=4, column=5, rowspan=2, sticky="nsew", padx=9, pady=9)
-        play.grid(row=4, column=6, rowspan=2, sticky="nsew", padx=9, pady=9)
+        record.grid(row=4, column=5, rowspan=2, sticky="nsew", padx=5, pady=9)
+        play.grid(row=4, column=6, rowspan=2, sticky="nsew", padx=5, pady=9)
         self._tip(record, "Record-arm action, matching the physical RECORD key.")
         self._tip(play, "Send MIDI Start, matching the physical PLAY key.")
 
@@ -848,7 +848,7 @@ def apply_modern_shell_patch(gui_module: Any) -> None:
                             borderwidth=1,
                             highlightbackground=LINE,
                             highlightthickness=1,
-                            padx=8,
+                            padx=3 if getattr(child, "studio_device_button", False) else 8,
                             pady=4,
                             cursor="hand2",
                         )
@@ -915,8 +915,8 @@ def _device_button(
     font_size: int = 11,
 ):
     bg = ACCENT_DARK if accent else (KEY_DARK if dark else KEY_LIGHT)
-    fg = "#d8b4a8" if accent else (LEGEND_DARK if dark else INK)
-    return tk.Button(
+    fg = "#ffffff" if accent else (LEGEND_DARK if dark else INK)
+    button = tk.Button(
         parent,
         text=text,
         command=command,
@@ -929,9 +929,11 @@ def _device_button(
         borderwidth=1,
         highlightbackground=KEY_EDGE,
         highlightthickness=1,
-        padx=6,
+        padx=3,
         pady=6,
     )
+    button.studio_device_button = True
+    return button
 
 
 def _split_device_button(
@@ -942,12 +944,12 @@ def _split_device_button(
     *,
     accent: bool = False,
 ):
-    return tk.Button(
+    button = tk.Button(
         parent,
         text=text,
         command=command,
         bg=ACCENT if accent else KEY_LIGHT,
-        fg="#f1d0c5" if accent else INK,
+        fg="#ffffff" if accent else INK,
         activebackground=ACCENT_DARK if accent else KEY_LIGHT_ACTIVE,
         activeforeground="#ffffff" if accent else INK,
         font=("Segoe UI", 9, "bold"),
@@ -955,6 +957,8 @@ def _split_device_button(
         borderwidth=1,
         highlightbackground=KEY_EDGE,
         highlightthickness=1,
-        padx=5,
+        padx=3,
         pady=5,
     )
+    button.studio_device_button = True
+    return button
