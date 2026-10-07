@@ -32,7 +32,6 @@ def apply_device_library_patch(gui_module: Any) -> None:
     messagebox = gui_module.messagebox
     original_init = app_class.__init__
     original_build_menu = app_class._build_menu
-    original_build_sample_library = app_class._build_sample_library
     original_connect_live = app_class._connect_live
     original_disconnect_live = app_class._disconnect_live
     original_close = app_class._close
@@ -65,23 +64,6 @@ def apply_device_library_patch(gui_module: Any) -> None:
         library.add_command(label="Device Library Guide", command=self._show_device_library_help)
         library.add_command(label="Stop Local Audio", command=stop_wav)
         menu.add_cascade(label="Device Library", menu=library)
-
-    def _build_sample_library(self, parent) -> None:
-        original_build_sample_library(self, parent)
-        toolbars = parent.grid_slaves(row=0, column=0)
-        if not toolbars:
-            return
-        button = tk.Button(
-            toolbars[0],
-            text="DEVICE LIBRARY",
-            command=self._show_device_library,
-            bg="#efeadf",
-        )
-        button.pack(side=tk.LEFT, padx=4)
-        self._tip(
-            button,
-            "Open the read-only EP-133 sound downloader, metadata viewer, waveform, and local preview.",
-        )
 
     def _connect_live(self, *args, **kwargs) -> None:
         if self._device_library_transfer_lock.locked():
@@ -921,7 +903,6 @@ def apply_device_library_patch(gui_module: Any) -> None:
 
     app_class.__init__ = __init__
     app_class._build_menu = _build_menu
-    app_class._build_sample_library = _build_sample_library
     app_class._connect_live = _connect_live
     app_class._disconnect_live = _disconnect_live
     app_class._close = _close

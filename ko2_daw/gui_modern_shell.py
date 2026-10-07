@@ -286,7 +286,10 @@ def apply_modern_shell_patch(gui_module: Any) -> None:
         for tab_id in self.workspace_tabs.tabs():
             if self.workspace_tabs.tab(tab_id, "text") == "Samples":
                 self.workspace_tabs.select(tab_id)
-                self.sample_tree.focus_set()
+                target = (
+                    self.sample_tree if self.sample_library.samples else self.sample_import_button
+                )
+                target.focus_set()
                 self._set_action("local samples · no device needed")
                 return
 

@@ -62,7 +62,7 @@ def main():
                 button.event_generate("<Return>")
                 root.update()
                 assert app.workspace_tabs.tab(app.workspace_tabs.select(), "text") == "Samples"
-                assert root.focus_get() == app.sample_tree
+                assert root.focus_get() == app.sample_import_button
                 assert all(
                     str(control["takefocus"]) == "1" for control in app.modern_tool_buttons.values()
                 )
@@ -91,6 +91,9 @@ def main():
                             app._import_wav()
                         root.update()
                         assert "warm-chord" in app.sample_status.get()
+                        app.modern_tool_buttons["SAMPLES"].invoke()
+                        root.update()
+                        assert root.focus_get() == app.sample_tree
                         assert all(
                             str(control["state"]) == "normal"
                             for control in app.sample_selection_buttons

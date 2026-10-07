@@ -608,6 +608,8 @@ class KO2DawApp:
         self.sample_selection_buttons = []
         for index, (text, command, tip) in enumerate(sample_buttons):
             button = tk.Button(toolbar, text=text, command=command, bg="#efeadf")
+            if text == "IMPORT WAV":
+                self.sample_import_button = button
             if text in {"PLAY LOCAL", "TRIGGER MIDI", "TRIM / SLICE"}:
                 button.configure(state=tk.DISABLED)
                 self.sample_selection_buttons.append(button)
