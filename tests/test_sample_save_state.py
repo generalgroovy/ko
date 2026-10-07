@@ -39,7 +39,9 @@ def test_import_save_and_addition_explain_current_persistence(tmp_path, monkeypa
     view._save_sample_manifest()
     assert SampleLibrary.load(destination).ordered() == view.sample_library.ordered()
     assert "Saved: my-library.json" in view.sample_save_status.set.call_args.args[0]
-    assert "not audio" in view._set_action.call_args.args[0]
+    assert view._set_action.call_args.args[0] == "Saved library: my-library.json"
+    assert str(destination) in view._log.call_args.args[0]
+    assert "not audio" in view._log.call_args.args[0]
     notice.assert_not_called()
     view.sample_tree = Mock()
     view._add_sample_copies([audio])

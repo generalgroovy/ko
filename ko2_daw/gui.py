@@ -1573,7 +1573,8 @@ class KO2DawApp:
             messagebox.showerror("KO II Samples", str(exc))
             return
         self._mark_sample_library_saved(path)
-        self._set_action(f"Saved library: {path} · file references, not audio")
+        self._set_action(f"Saved library: {path.name}")
+        self._log(f"Library location: {path} · file references, not audio")
 
     def _probe_identity(self) -> None:
         self._run_sysex_probe("identity", build_universal_identity_request())
