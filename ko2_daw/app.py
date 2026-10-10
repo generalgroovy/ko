@@ -58,7 +58,7 @@ from ko2_daw.te_sysex import (
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Safe MIDI DAW controller for sampler experiments."
+        description="KO II / EP-133 sample, MIDI and arrangement tools."
     )
     parser.add_argument(
         "--gui", action="store_true", help="Open the KO II-style desktop control surface."

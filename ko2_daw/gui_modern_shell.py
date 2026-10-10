@@ -151,7 +151,7 @@ def apply_modern_shell_patch(gui_module: Any) -> None:
         ).pack(anchor="w")
         tk.Label(
             brand,
-            text="SAMPLER  /  COMPOSER  /  DAW",
+            text="EP-133 WORKSTATION",
             bg=DISPLAY,
             fg=ACCENT,
             font=("Segoe UI", 8, "bold"),
@@ -230,18 +230,18 @@ def apply_modern_shell_patch(gui_module: Any) -> None:
                 "ON THIS COMPUTER",
                 (
                     ("SAMPLES", "Import, trim and slice WAVs", "_modern_show_samples"),
-                    ("COMPOSE", "Scenes, clips and song", "_show_arranger_window"),
+                    ("COMPOSE", "Arrange scenes and songs", "_show_arranger_window"),
                     ("AUDIO", "Record, edit and mix", "_show_audio_studio"),
-                    ("PERFORM", "Capture and overdub MIDI", "_show_performance_window"),
+                    ("PERFORM", "Record and overdub MIDI", "_show_performance_window"),
                 ),
             ),
             (
-                "DEVICE & SETTINGS · MIDI stays in dry run until you connect",
+                "DEVICE & SETTINGS",
                 (
                     ("DEVICE FILES", "Browse sampler storage", "_show_device_file_explorer"),
                     ("DEVICE LIBRARY", "Inspect sampler sounds", "_show_device_library"),
                     ("PROJECTS", "Backup, inspect and diff", "_show_project_catalog"),
-                    ("SETTINGS", "App and route preferences", "_modern_show_settings"),
+                    ("SETTINGS", "MIDI routing and preferences", "_modern_show_settings"),
                 ),
             ),
         )
@@ -267,7 +267,7 @@ def apply_modern_shell_patch(gui_module: Any) -> None:
                     padx=12,
                     pady=6,
                     relief=tk.FLAT,
-                    highlightthickness=2,
+                    highlightthickness=1,
                     highlightbackground=LINE,
                     highlightcolor=ACCENT_DARK,
                     takefocus=True,

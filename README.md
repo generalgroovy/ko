@@ -1,6 +1,6 @@
 # KO II Sampler DAW
 
-A Windows desktop companion for the Teenage Engineering EP-133 / KO II: local samples, MIDI performance recording, a scene arranger, an audio timeline and read-only device exploration.
+Windows tools for the Teenage Engineering EP-133 / KO II: edit local WAV samples, record MIDI, arrange scenes, mix an audio timeline and inspect device data. Live MIDI remains opt-in.
 
 This is the main KO II project. The older [Web MIDI Lab](https://github.com/generalgroovy/ko2) is a reference; its exported sample libraries can be migrated here.
 
